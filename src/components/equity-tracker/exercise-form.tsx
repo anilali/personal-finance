@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { exerciseSchema, type ExerciseFormData } from "@/lib/equity-tracker/schemas";
 import { createExercise, updateExercise } from "@/lib/equity-tracker/server-fns";
-import { formatCurrency, formatShares } from "@/lib/equity-tracker/utils";
+import { Badge } from "@/components/ui/badge";
+import { formatCurrency, formatShares, formatDate } from "@/lib/equity-tracker/utils";
 import type { Exercise } from "@/lib/equity-tracker/types";
 
 interface ExerciseFormProps {
@@ -65,15 +66,32 @@ export function ExerciseForm({
         shares: exercise?.shares ?? 0,
         exercisePrice: exercise?.exercisePrice ?? strikePrice,
         fmvAtExercise: exercise?.fmvAtExercise ?? (currentPrice ?? 0),
+        unvestedShares: exercise?.unvestedShares ?? 0,
+        filed83b: exercise?.filed83b ?? false,
+        filed83bDate: exercise?.filed83bDate ?? "",
         notes: exercise?.notes ?? "",
       });
     }
   }, [open, exercise]);
 
   const shares = form.watch("shares") || 0;
+  const unvestedShares = form.watch("unvestedShares") || 0;
+  const filed83b = form.watch("filed83b");
+  const exerciseDate = form.watch("exerciseDate");
   const fmv = form.watch("fmvAtExercise") || 0;
   const costBasis = shares * strikePrice;
   const spreadAtExercise = shares * Math.max(0, fmv - strikePrice);
+
+  // 83(b) deadline: 30 days from exercise date
+  const deadline83b = exerciseDate
+    ? (() => {
+        const d = new Date(exerciseDate + "T12:00:00");
+        d.setDate(d.getDate() + 30);
+        return d.toISOString().split("T")[0];
+      })()
+    : null;
+  const today = new Date().toISOString().split("T")[0];
+  const deadlinePassed = deadline83b ? today > deadline83b : false;
 
   const onSubmit = async (data: ExerciseFormData) => {
     if (data.shares > maxShares) {
@@ -81,21 +99,31 @@ export function ExerciseForm({
       return;
     }
     try {
+      const payload = {
+        ...data,
+        exercisePrice: strikePrice,
+        unvestedShares: data.unvestedShares || 0,
+        filed83b: data.unvestedShares && data.unvestedShares > 0 ? data.filed83b : false,
+        filed83bDate: data.unvestedShares && data.unvestedShares > 0 && data.filed83b ? data.filed83bDate : undefined,
+      };
       if (isEdit) {
         await updateExercise({
           data: {
             id: exercise.id,
-            referenceId: data.referenceId || undefined,
-            exerciseDate: data.exerciseDate,
-            shares: data.shares,
-            exercisePrice: strikePrice,
-            fmvAtExercise: data.fmvAtExercise,
-            notes: data.notes || undefined,
+            referenceId: payload.referenceId || undefined,
+            exerciseDate: payload.exerciseDate,
+            shares: payload.shares,
+            exercisePrice: payload.exercisePrice,
+            fmvAtExercise: payload.fmvAtExercise,
+            unvestedShares: payload.unvestedShares,
+            filed83b: payload.filed83b,
+            filed83bDate: payload.filed83bDate,
+            notes: payload.notes || undefined,
           },
         });
         toast.success("Exercise updated");
       } else {
-        await createExercise({ data: { ...data, exercisePrice: strikePrice } });
+        await createExercise({ data: payload });
         toast.success(`Exercised ${formatShares(data.shares)} shares`);
       }
       router.invalidate();
@@ -166,6 +194,52 @@ export function ExerciseForm({
               Exercise price: {formatCurrency(strikePrice)} (strike)
             </p>
           </div>
+
+          {/* Early exercise / 83(b) */}
+          <div className="space-y-1.5">
+            <Label htmlFor="unvestedShares">Unvested shares included (early exercise)</Label>
+            <Input
+              id="unvestedShares"
+              type="number"
+              step="1"
+              min="0"
+              max={shares}
+              placeholder="0"
+              {...form.register("unvestedShares", { valueAsNumber: true })}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              0 if all exercised shares were already vested
+            </p>
+          </div>
+
+          {unvestedShares > 0 && (
+            <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="filed83b"
+                  className="size-4 rounded border-border"
+                  {...form.register("filed83b")}
+                />
+                <Label htmlFor="filed83b" className="text-sm font-normal">
+                  83(b) election filed
+                </Label>
+              </div>
+
+              {filed83b ? (
+                <div className="space-y-1.5">
+                  <Label htmlFor="filed83bDate">Date filed</Label>
+                  <Input id="filed83bDate" type="date" {...form.register("filed83bDate")} />
+                </div>
+              ) : (
+                <div className={`text-xs ${deadlinePassed ? "text-destructive" : "text-amber-700"}`}>
+                  {deadlinePassed
+                    ? `Deadline passed (${deadline83b ? formatDate(deadline83b) : ""}). 83(b) must be filed within 30 days of exercise.`
+                    : `Must file by ${deadline83b ? formatDate(deadline83b) : ""} (30 days from exercise).`}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="exerciseNotes">Notes (optional)</Label>

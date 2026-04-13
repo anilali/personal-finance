@@ -50,6 +50,7 @@ export function ExerciseTable({
               <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Ref</th>
               <th className="w-32 px-4 py-2.5 text-left font-medium text-muted-foreground">Date</th>
               <th className="w-24 px-4 py-2.5 text-right font-medium text-muted-foreground">Shares</th>
+              <th className="px-4 py-2.5 text-center font-medium text-muted-foreground">Type</th>
               <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">FMV</th>
               <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">Spread</th>
               <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">Cost</th>
@@ -66,6 +67,27 @@ export function ExerciseTable({
                   <td className="px-4 py-2.5 text-sm font-medium">{ex.referenceId || "—"}</td>
                   <td className="px-4 py-2.5">{formatDate(ex.exerciseDate)}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{formatShares(ex.shares)}</td>
+                  <td className="px-4 py-2.5 text-center">
+                    {ex.unvestedShares > 0 ? (
+                      <div className="flex flex-col items-center gap-0.5">
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] ${
+                            ex.filed83b
+                              ? "border-green-300 bg-green-50 text-green-700"
+                              : "border-amber-300 bg-amber-50 text-amber-700"
+                          }`}
+                        >
+                          {ex.filed83b ? "83(b)" : "No 83(b)"}
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground">
+                          {formatShares(ex.unvestedShares)} unvested
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Standard</span>
+                    )}
+                  </td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency(ex.fmvAtExercise)}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency(spread)}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency(cost)}</td>

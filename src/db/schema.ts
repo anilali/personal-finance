@@ -138,6 +138,9 @@ export const equityExercises = pgTable("equity_exercises", {
   shares: numeric("shares", { precision: 12, scale: 4 }).notNull(),
   exercisePrice: numeric("exercise_price", { precision: 12, scale: 4 }).notNull(),
   fmvAtExercise: numeric("fmv_at_exercise", { precision: 12, scale: 4 }).notNull(),
+  unvestedShares: numeric("unvested_shares", { precision: 12, scale: 4 }).default("0").notNull(),
+  filed83b: boolean("filed_83b").default(false).notNull(),
+  filed83bDate: date("filed_83b_date"),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });

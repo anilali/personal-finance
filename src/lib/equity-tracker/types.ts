@@ -65,6 +65,9 @@ export interface Exercise {
   shares: number;
   exercisePrice: number;
   fmvAtExercise: number;
+  unvestedShares: number;
+  filed83b: boolean;
+  filed83bDate: string | null;
   notes: string | null;
   createdAt: Date;
 }
@@ -183,5 +186,8 @@ export interface CreateExerciseInput {
   shares: number;
   exercisePrice: number;
   fmvAtExercise: number;
+  unvestedShares?: number;
+  filed83b?: boolean;
+  filed83bDate?: string;
   notes?: string;
 }

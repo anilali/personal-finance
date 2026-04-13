@@ -60,6 +60,12 @@ export const exerciseSchema = z.object({
   shares: positiveNumber,
   exercisePrice: money,
   fmvAtExercise: money,
+  unvestedShares: z.preprocess(
+    (val) => (val === "" || Number.isNaN(val) ? 0 : val),
+    z.number().min(0).default(0),
+  ),
+  filed83b: z.boolean().default(false),
+  filed83bDate: z.string().optional(),
   notes: z.string().optional(),
 });
 

@@ -62,6 +62,7 @@ function toExercise(row: typeof equityExercises.$inferSelect): Exercise {
     shares: Number(row.shares),
     exercisePrice: Number(row.exercisePrice),
     fmvAtExercise: Number(row.fmvAtExercise),
+    unvestedShares: Number(row.unvestedShares),
   };
 }
 
@@ -325,6 +326,9 @@ export const createExercise = createServerFn({ method: "POST" })
         shares: String(data.shares),
         exercisePrice: String(data.exercisePrice),
         fmvAtExercise: String(data.fmvAtExercise),
+        unvestedShares: String(data.unvestedShares ?? 0),
+        filed83b: data.filed83b ?? false,
+        filed83bDate: data.filed83bDate || null,
         notes: data.notes || null,
       })
       .returning();
@@ -333,7 +337,7 @@ export const createExercise = createServerFn({ method: "POST" })
 
 export const updateExercise = createServerFn({ method: "POST" })
   .inputValidator(
-    (input: { id: string; referenceId?: string; exerciseDate?: string; shares?: number; fmvAtExercise?: number; exercisePrice?: number; notes?: string }) => input,
+    (input: { id: string; referenceId?: string; exerciseDate?: string; shares?: number; fmvAtExercise?: number; exercisePrice?: number; unvestedShares?: number; filed83b?: boolean; filed83bDate?: string; notes?: string }) => input,
   )
   .handler(async ({ data }): Promise<Exercise> => {
     const { id, ...fields } = data;
@@ -343,6 +347,9 @@ export const updateExercise = createServerFn({ method: "POST" })
     if (fields.shares !== undefined) updateData.shares = String(fields.shares);
     if (fields.fmvAtExercise !== undefined) updateData.fmvAtExercise = String(fields.fmvAtExercise);
     if (fields.exercisePrice !== undefined) updateData.exercisePrice = String(fields.exercisePrice);
+    if (fields.unvestedShares !== undefined) updateData.unvestedShares = String(fields.unvestedShares);
+    if (fields.filed83b !== undefined) updateData.filed83b = fields.filed83b;
+    if (fields.filed83bDate !== undefined) updateData.filed83bDate = fields.filed83bDate || null;
     if (fields.notes !== undefined) updateData.notes = fields.notes || null;
 
     const [row] = await db
