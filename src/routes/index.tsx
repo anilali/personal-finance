@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Calculator, ArrowRight } from "lucide-react";
+import { Calculator, TrendingUp, ArrowRight } from "lucide-react";
 
 const utilities = [
   {
@@ -9,6 +9,16 @@ const utilities = [
       "Estimate your federal and state taxes with a guided, step-by-step wizard.",
     icon: Calculator,
     tag: "Finance",
+    search: { step: "list" as const },
+  },
+  {
+    to: "/equity-tracker",
+    title: "Equity Tracker",
+    description:
+      "Track your stock options, RSUs, and equity grants across vesting schedules.",
+    icon: TrendingUp,
+    tag: "Equity",
+    search: undefined,
   },
 ] as const;
 
@@ -40,7 +50,7 @@ function HomePage() {
           <Link
             key={util.to}
             to={util.to}
-            search={{ step: "list" }}
+            search={util.search as any}
             className="group relative rounded-xl border border-border bg-white p-6 shadow-sm transition-all duration-200 hover:border-primary/30 hover:shadow-md"
           >
             <div className="flex items-start justify-between">

@@ -1,10 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Calculator, Home, Sparkles } from "lucide-react";
+import { Calculator, TrendingUp, Home, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { to: "/", label: "Home", icon: Home, search: undefined },
   { to: "/tax-estimator", label: "Tax Estimator", icon: Calculator, search: { step: "list" as const } },
+  { to: "/equity-tracker", label: "Equity Tracker", icon: TrendingUp, search: undefined },
 ] as const;
 
 export function AppNav() {
