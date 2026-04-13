@@ -8,6 +8,7 @@ import {
   jsonb,
   pgEnum,
   numeric,
+  date,
 } from "drizzle-orm/pg-core";
 
 // ── Existing tables ──────────────────────────────────────────────
@@ -80,5 +81,91 @@ export const estimateDocuments = pgTable("estimate_documents", {
   documentType: documentTypeEnum("document_type").notNull(),
   label: text("label"),
   data: jsonb("data").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ── Equity Tracker ──────────────────────────────────────────────
+
+export const grantTypeEnum = pgEnum("grant_type", ["iso", "nso"]);
+
+export const grantStatusEnum = pgEnum("grant_status", [
+  "active",
+  "fully_vested",
+  "expired",
+  "cancelled",
+]);
+
+export const vestStatusEnum = pgEnum("vest_status", ["scheduled", "vested", "forfeited"]);
+
+export const equityCompanies = pgTable("equity_companies", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  ticker: text("ticker"),
+  currentPrice: numeric("current_price", { precision: 12, scale: 4 }),
+  priceAsOf: date("price_as_of"),
+  isCurrent: boolean("is_current").default(true).notNull(),
+  separationDate: date("separation_date"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const equityGrants = pgTable("equity_grants", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  grantId: text("grant_id"),
+  companyId: uuid("company_id")
+    .notNull()
+    .references(() => equityCompanies.id, { onDelete: "cascade" }),
+  grantType: grantTypeEnum("grant_type").notNull(),
+  grantDate: date("grant_date").notNull(),
+  totalShares: numeric("total_shares", { precision: 12, scale: 4 }).notNull(),
+  strikePrice: numeric("strike_price", { precision: 12, scale: 4 }).notNull(),
+  grantPrice: numeric("grant_price", { precision: 12, scale: 4 }),
+  expirationDate: date("expiration_date"),
+  vestingStart: date("vesting_start"),
+  vestingSchedule: jsonb("vesting_schedule"),
+  status: grantStatusEnum("status").default("active").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const equityExercises = pgTable("equity_exercises", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  referenceId: text("reference_id"),
+  grantId: uuid("grant_id")
+    .notNull()
+    .references(() => equityGrants.id, { onDelete: "cascade" }),
+  exerciseDate: date("exercise_date").notNull(),
+  shares: numeric("shares", { precision: 12, scale: 4 }).notNull(),
+  exercisePrice: numeric("exercise_price", { precision: 12, scale: 4 }).notNull(),
+  fmvAtExercise: numeric("fmv_at_exercise", { precision: 12, scale: 4 }).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const equitySales = pgTable("equity_sales", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  referenceId: text("reference_id"),
+  grantId: uuid("grant_id")
+    .notNull()
+    .references(() => equityGrants.id, { onDelete: "cascade" }),
+  exerciseId: uuid("exercise_id")
+    .references(() => equityExercises.id, { onDelete: "set null" }),
+  saleDate: date("sale_date").notNull(),
+  shares: numeric("shares", { precision: 12, scale: 4 }).notNull(),
+  salePrice: numeric("sale_price", { precision: 12, scale: 4 }).notNull(),
+  costBasisPerShare: numeric("cost_basis_per_share", { precision: 12, scale: 4 }).notNull(),
+  isLongTerm: boolean("is_long_term").default(false).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const equityVestEvents = pgTable("equity_vest_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  grantId: uuid("grant_id")
+    .notNull()
+    .references(() => equityGrants.id, { onDelete: "cascade" }),
+  vestDate: date("vest_date").notNull(),
+  shares: numeric("shares", { precision: 12, scale: 4 }).notNull(),
+  status: vestStatusEnum("status").default("scheduled").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
