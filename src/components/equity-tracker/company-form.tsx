@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { companySchema, type CompanyFormData } from "@/lib/equity-tracker/schemas";
-import { createCompany, updateCompany } from "@/lib/equity-tracker/server-fns";
+import { createCompany, fetchTickerPrice, updateCompany } from "@/lib/equity-tracker/server-fns";
 import type { Company } from "@/lib/equity-tracker/types";
 
 interface CompanyFormProps {
@@ -53,6 +54,29 @@ export function CompanyForm({ open, onClose, company }: CompanyFormProps) {
   }, [open, company]);
 
   const isCurrent = form.watch("isCurrent");
+  const [isFetchingPrice, setIsFetchingPrice] = useState(false);
+  const lastFetchedTicker = useRef<string>("");
+
+  const handleTickerBlur = async () => {
+    const ticker = form.getValues("ticker")?.trim().toUpperCase();
+    if (!ticker) return;
+    if (ticker === lastFetchedTicker.current) return;
+    lastFetchedTicker.current = ticker;
+
+    setIsFetchingPrice(true);
+    try {
+      const { price, asOf } = await fetchTickerPrice({ data: { ticker } });
+      form.setValue("currentPrice", price, { shouldValidate: true, shouldDirty: true });
+      form.setValue("priceAsOf", asOf, { shouldValidate: true, shouldDirty: true });
+      toast.success(`Fetched ${ticker}: $${price.toFixed(2)}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to fetch price";
+      toast.error(msg);
+      lastFetchedTicker.current = "";
+    } finally {
+      setIsFetchingPrice(false);
+    }
+  };
 
   const onSubmit = async (data: CompanyFormData) => {
     try {
@@ -113,10 +137,19 @@ export function CompanyForm({ open, onClose, company }: CompanyFormProps) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="ticker">Ticker (optional)</Label>
-              <Input id="ticker" placeholder="ACME" {...form.register("ticker")} />
+              <Input
+                id="ticker"
+                placeholder="ACME"
+                {...form.register("ticker", {
+                  onBlur: handleTickerBlur,
+                })}
+              />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="currentPrice">Share price</Label>
+              <Label htmlFor="currentPrice" className="flex items-center gap-1.5">
+                FMV Price
+                {isFetchingPrice && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
+              </Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
                 <Input

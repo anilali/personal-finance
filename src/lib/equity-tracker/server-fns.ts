@@ -511,3 +511,43 @@ export const vestAllPast = createServerFn({ method: "POST" }).handler(
     return { vestedCount, cancelledCount, grantsUpdated };
   },
 );
+
+// ── Market data ───────────────────────────────────────────────────
+
+export const fetchTickerPrice = createServerFn({ method: "GET" })
+  .inputValidator((input: { ticker: string }) => input)
+  .handler(async ({ data }): Promise<{ price: number; asOf: string; currency: string }> => {
+    const symbol = data.ticker.trim().toUpperCase();
+    if (!symbol) throw new Error("Ticker is required");
+
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (personal-finance app)" },
+    });
+    if (!res.ok) throw new Error(`Yahoo Finance returned ${res.status}`);
+
+    const json = (await res.json()) as {
+      chart: {
+        result?: Array<{
+          meta?: {
+            regularMarketPrice?: number;
+            regularMarketTime?: number;
+            currency?: string;
+          };
+        }>;
+        error?: { description?: string } | null;
+      };
+    };
+
+    if (json.chart.error) throw new Error(json.chart.error.description || "Yahoo Finance error");
+    const meta = json.chart.result?.[0]?.meta;
+    const price = meta?.regularMarketPrice;
+    if (typeof price !== "number") throw new Error(`No price found for "${symbol}"`);
+
+    const asOfDate = meta?.regularMarketTime
+      ? new Date(meta.regularMarketTime * 1000)
+      : new Date();
+    const asOf = asOfDate.toISOString().slice(0, 10);
+
+    return { price, asOf, currency: meta?.currency ?? "USD" };
+  });

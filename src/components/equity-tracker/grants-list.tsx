@@ -71,7 +71,7 @@ export function GrantsList({ company, selectedGrantId, onAddGrant, onEditCompany
           <div className="mt-1 flex items-center gap-4 text-sm text-muted-foreground">
             {company.currentPrice != null && (
               <span>
-                <span className="font-semibold">Share price:</span> {formatCurrency(company.currentPrice)}
+                <span className="font-semibold">FMV Price:</span> {formatCurrency(company.currentPrice)}
                 {company.priceAsOf && ` (as of ${formatDate(company.priceAsOf)})`}
               </span>
             )}
