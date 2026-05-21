@@ -49,14 +49,14 @@ export function SaleForm({
   const isEdit = !!sale;
   const isRsu = grantType === "rsu";
 
-  const availableLots = lots.filter((l) => l.sharesRemaining > 0 || (isEdit && l.id === (sale?.exerciseId ?? sale?.vestEventId)));
+  const availableLots = lots.filter((l) => l.sharesRemaining > 0 || (isEdit && l.id === (sale?.exerciseId ?? sale?.releaseId)));
 
   const form = useForm<SaleFormData>({
     resolver: zodResolver(saleSchema),
     defaultValues: {
       grantId,
       exerciseId: "",
-      vestEventId: "",
+      releaseId: "",
       referenceId: "",
       saleDate: "",
       shares: 0,
@@ -72,7 +72,7 @@ export function SaleForm({
       form.reset({
         grantId,
         exerciseId: sale?.exerciseId ?? "",
-        vestEventId: sale?.vestEventId ?? "",
+        releaseId: sale?.releaseId ?? "",
         referenceId: sale?.referenceId ?? "",
         saleDate: sale?.saleDate ?? new Date().toISOString().split("T")[0],
         shares: sale?.shares ?? 0,
@@ -85,11 +85,11 @@ export function SaleForm({
   }, [open, sale]);
 
   // Track which lot is selected by its unified id
-  const selectedLotId = isRsu ? form.watch("vestEventId") : form.watch("exerciseId");
+  const selectedLotId = isRsu ? form.watch("releaseId") : form.watch("exerciseId");
   const selectedLot = lots.find((l) => l.id === selectedLotId);
   const saleDate = form.watch("saleDate");
   const maxShares = selectedLot
-    ? selectedLot.sharesRemaining + (isEdit && selectedLot.id === (sale?.exerciseId ?? sale?.vestEventId) ? sale!.shares : 0)
+    ? selectedLot.sharesRemaining + (isEdit && selectedLot.id === (sale?.exerciseId ?? sale?.releaseId) ? sale!.shares : 0)
     : 0;
 
   // Derive cost basis and holding period
@@ -110,11 +110,11 @@ export function SaleForm({
 
   const handleSelectLot = (lotId: string) => {
     if (isRsu) {
-      form.setValue("vestEventId", lotId);
+      form.setValue("releaseId", lotId);
       form.setValue("exerciseId", "");
     } else {
       form.setValue("exerciseId", lotId);
-      form.setValue("vestEventId", "");
+      form.setValue("releaseId", "");
     }
   };
 
@@ -131,7 +131,7 @@ export function SaleForm({
       const payload = {
         ...data,
         exerciseId: isRsu ? undefined : selectedLotId,
-        vestEventId: isRsu ? selectedLotId : undefined,
+        releaseId: isRsu ? selectedLotId : undefined,
         costBasisPerShare,
         isLongTerm: longTerm,
       };
@@ -140,7 +140,7 @@ export function SaleForm({
           data: {
             id: sale.id,
             exerciseId: payload.exerciseId,
-            vestEventId: payload.vestEventId,
+            releaseId: payload.releaseId,
             referenceId: payload.referenceId || undefined,
             saleDate: payload.saleDate,
             shares: payload.shares,
@@ -169,18 +169,18 @@ export function SaleForm({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Sale" : "Log Sale"}</DialogTitle>
           <DialogDescription>
-            Select a {isRsu ? "vest" : "exercise"} lot to sell from.
+            Select a {isRsu ? "release" : "exercise"} lot to sell from.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* Lot picker */}
           <div className="space-y-1.5">
-            <Label>{isRsu ? "Vest lot" : "Exercise lot"}</Label>
+            <Label>{isRsu ? "Release lot" : "Exercise lot"}</Label>
             {availableLots.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 {isRsu
-                  ? "No vested shares available to sell."
+                  ? "No released shares available to sell."
                   : "No shares available to sell. Exercise shares first."}
               </p>
             ) : (
@@ -213,7 +213,7 @@ export function SaleForm({
               <div className="rounded-lg border border-border bg-secondary/30 px-4 py-2.5 flex items-center justify-between text-sm">
                 <div className="flex items-center gap-4">
                   <span>
-                    <span className="text-muted-foreground">{isRsu ? "Vested:" : "Exercised:"}</span>{" "}
+                    <span className="text-muted-foreground">{isRsu ? "Released:" : "Exercised:"}</span>{" "}
                     <span className="font-medium">{formatDate(selectedLot.acquiredDate)}</span>
                   </span>
                   <span>

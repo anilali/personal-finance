@@ -74,7 +74,7 @@ export const exerciseSchema = z.object({
 export const saleSchema = z.object({
   grantId: z.string().uuid(),
   exerciseId: z.string().optional(),
-  vestEventId: z.string().optional(),
+  releaseId: z.string().optional(),
   referenceId: z.string().optional(),
   saleDate: z.string().min(1, "Sale date is required"),
   shares: positiveNumber,

@@ -6,21 +6,20 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { updateVestEvent, deleteVestEvent } from "@/lib/equity-tracker/server-fns";
 import type { VestEvent } from "@/lib/equity-tracker/types";
-import { formatShares, formatDate, formatCurrency } from "@/lib/equity-tracker/utils";
+import { formatShares, formatDate } from "@/lib/equity-tracker/utils";
 
 interface VestingTableProps {
   vestEvents: VestEvent[];
   separationDate?: string | null;
-  showFmv?: boolean;
 }
 
 type EditingCell = {
   id: string;
-  field: "vestDate" | "shares" | "fmvAtVest";
+  field: "vestDate" | "shares";
   value: string;
 };
 
-export function VestingTable({ vestEvents, separationDate, showFmv }: VestingTableProps) {
+export function VestingTable({ vestEvents, separationDate }: VestingTableProps) {
   const router = useRouter();
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -40,13 +39,11 @@ export function VestingTable({ vestEvents, separationDate, showFmv }: VestingTab
   const today = new Date().toISOString().split("T")[0];
   const normalizedSepDate = separationDate?.includes("T") ? separationDate.split("T")[0] : separationDate;
 
-  const startEdit = (event: VestEvent, field: "vestDate" | "shares" | "fmvAtVest") => {
+  const startEdit = (event: VestEvent, field: "vestDate" | "shares") => {
     setEditingCell({
       id: event.id,
       field,
-      value: field === "shares" ? String(event.shares)
-        : field === "fmvAtVest" ? String(event.fmvAtVest ?? "")
-        : event.vestDate,
+      value: field === "shares" ? String(event.shares) : event.vestDate,
     });
   };
 
@@ -57,27 +54,13 @@ export function VestingTable({ vestEvents, separationDate, showFmv }: VestingTab
     if (!original) return;
 
     // Check if value actually changed
-    const originalValue = field === "shares" ? String(original.shares)
-      : field === "fmvAtVest" ? String(original.fmvAtVest ?? "")
-      : original.vestDate;
+    const originalValue = field === "shares" ? String(original.shares) : original.vestDate;
     if (value === originalValue) {
       setEditingCell(null);
       return;
     }
 
-    if (field === "fmvAtVest") {
-      const num = Number(value);
-      if (isNaN(num) || num < 0) {
-        toast.error("Enter a valid FMV");
-        return;
-      }
-      try {
-        await updateVestEvent({ data: { id, fmvAtVest: num } });
-        toast.success("FMV updated");
-      } catch {
-        toast.error("Failed to update");
-      }
-    } else if (field === "shares") {
+    if (field === "shares") {
       const num = Number(value);
       if (isNaN(num) || num <= 0) {
         toast.error("Enter a valid share count");
@@ -118,7 +101,6 @@ export function VestingTable({ vestEvents, separationDate, showFmv }: VestingTab
           <tr className="border-b border-border bg-secondary/50">
             <th className="w-40 px-4 py-2.5 text-left font-medium text-muted-foreground">Date</th>
             <th className="w-28 px-4 py-2.5 text-right font-medium text-muted-foreground">Shares</th>
-            {showFmv && <th className="w-28 px-4 py-2.5 text-right font-medium text-muted-foreground">FMV</th>}
             <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">Status</th>
             <th className="w-10 px-2 py-2.5" />
           </tr>
@@ -130,7 +112,6 @@ export function VestingTable({ vestEvents, separationDate, showFmv }: VestingTab
             const isForfeited = event.status === "forfeited" || !!(normalizedSepDate && event.status === "scheduled" && event.vestDate > normalizedSepDate);
             const isEditingDate = editingCell?.id === event.id && editingCell.field === "vestDate";
             const isEditingShares = editingCell?.id === event.id && editingCell.field === "shares";
-            const isEditingFmv = editingCell?.id === event.id && editingCell.field === "fmvAtVest";
 
             return (
               <tr key={event.id} className={`border-b border-border last:border-b-0 ${isForfeited ? "opacity-50" : ""}`}>
@@ -172,28 +153,6 @@ export function VestingTable({ vestEvents, separationDate, showFmv }: VestingTab
                     formatShares(event.shares)
                   )}
                 </td>
-                {showFmv && (
-                  <td
-                    className="px-4 py-2.5 text-right tabular-nums cursor-text hover:bg-secondary/50 transition-colors"
-                    onClick={() => !isEditingFmv && startEdit(event, "fmvAtVest")}
-                  >
-                    {isEditingFmv ? (
-                      <Input
-                        ref={inputRef}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={editingCell.value}
-                        onChange={(e) => setEditingCell({ ...editingCell, value: e.target.value })}
-                        onBlur={save}
-                        onKeyDown={handleKeyDown}
-                        className="h-7 w-full max-w-24 ml-auto text-right text-sm -my-1"
-                      />
-                    ) : (
-                      event.fmvAtVest != null ? formatCurrency(event.fmvAtVest) : <span className="text-muted-foreground">—</span>
-                    )}
-                  </td>
-                )}
                 <td className="px-4 py-2.5 text-right">
                   {event.status === "vested" ? (
                     <Badge variant="secondary" className="text-[10px]">Vested</Badge>

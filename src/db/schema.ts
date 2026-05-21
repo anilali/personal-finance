@@ -153,8 +153,8 @@ export const equitySales = pgTable("equity_sales", {
     .references(() => equityGrants.id, { onDelete: "cascade" }),
   exerciseId: uuid("exercise_id")
     .references(() => equityExercises.id, { onDelete: "set null" }),
-  vestEventId: uuid("vest_event_id")
-    .references(() => equityVestEvents.id, { onDelete: "set null" }),
+  releaseId: uuid("release_id")
+    .references(() => equityReleases.id, { onDelete: "set null" }),
   saleDate: date("sale_date").notNull(),
   shares: numeric("shares", { precision: 12, scale: 4 }).notNull(),
   salePrice: numeric("sale_price", { precision: 12, scale: 4 }).notNull(),
@@ -171,7 +171,37 @@ export const equityVestEvents = pgTable("equity_vest_events", {
     .references(() => equityGrants.id, { onDelete: "cascade" }),
   vestDate: date("vest_date").notNull(),
   shares: numeric("shares", { precision: 12, scale: 4 }).notNull(),
-  fmvAtVest: numeric("fmv_at_vest", { precision: 12, scale: 4 }),
   status: vestStatusEnum("status").default("scheduled").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const equityDonations = pgTable("equity_donations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  grantId: uuid("grant_id")
+    .notNull()
+    .references(() => equityGrants.id, { onDelete: "cascade" }),
+  exerciseId: uuid("exercise_id")
+    .references(() => equityExercises.id, { onDelete: "set null" }),
+  releaseId: uuid("release_id")
+    .references(() => equityReleases.id, { onDelete: "set null" }),
+  donationDate: date("donation_date").notNull(),
+  shares: numeric("shares", { precision: 12, scale: 4 }).notNull(),
+  fmvAtDonation: numeric("fmv_at_donation", { precision: 12, scale: 4 }).notNull(),
+  recipient: text("recipient"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const equityReleases = pgTable("equity_releases", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  grantId: uuid("grant_id")
+    .notNull()
+    .references(() => equityGrants.id, { onDelete: "cascade" }),
+  referenceId: text("reference_id"),
+  releaseDate: date("release_date").notNull(),
+  sharesReleased: numeric("shares_released", { precision: 12, scale: 4 }).notNull(),
+  sharesReceived: numeric("shares_received", { precision: 12, scale: 4 }).notNull(),
+  fmvAtRelease: numeric("fmv_at_release", { precision: 12, scale: 4 }),
+  notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });

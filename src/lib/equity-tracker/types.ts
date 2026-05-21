@@ -54,8 +54,32 @@ export interface VestEvent {
   grantId: string;
   vestDate: string;
   shares: number;
-  fmvAtVest: number | null;
   status: VestStatus;
+}
+
+export interface Donation {
+  id: string;
+  grantId: string;
+  exerciseId: string | null;
+  releaseId: string | null;
+  donationDate: string;
+  shares: number;
+  fmvAtDonation: number;
+  recipient: string | null;
+  notes: string | null;
+  createdAt: Date;
+}
+
+export interface Release {
+  id: string;
+  grantId: string;
+  referenceId: string | null;
+  releaseDate: string;
+  sharesReleased: number;
+  sharesReceived: number;
+  fmvAtRelease: number | null;
+  notes: string | null;
+  createdAt: Date;
 }
 
 export interface Exercise {
@@ -78,7 +102,7 @@ export interface Sale {
   referenceId: string | null;
   grantId: string;
   exerciseId: string | null;
-  vestEventId: string | null;
+  releaseId: string | null;
   saleDate: string;
   shares: number;
   salePrice: number;
@@ -92,9 +116,9 @@ export interface Sale {
 
 export interface Lot {
   id: string;
-  source: "exercise" | "vest";
+  source: "exercise" | "release";
   exerciseId?: string;
-  vestEventId?: string;
+  releaseId?: string;
   referenceId: string | null;
   acquiredDate: string;
   costBasis: number;
@@ -111,8 +135,10 @@ export interface CompanyWithGrants extends Company {
 
 export interface GrantWithVesting extends Grant {
   vestEvents: VestEvent[];
+  releases: Release[];
   exercises: Exercise[];
   sales: Sale[];
+  donations: Donation[];
   company: Company;
 }
 
@@ -126,6 +152,7 @@ export interface GrantSummary {
   exercisedShares: number;
   exercisableShares: number;
   soldShares: number;
+  donatedShares: number;
   heldShares: number;
   remainingOptions: number;
   currentSpread: number;
@@ -173,13 +200,24 @@ export interface UpdateGrantInput extends Partial<Omit<CreateGrantInput, "compan
 export interface CreateSaleInput {
   grantId: string;
   exerciseId?: string;
-  vestEventId?: string;
+  releaseId?: string;
   referenceId?: string;
   saleDate: string;
   shares: number;
   salePrice: number;
   costBasisPerShare: number;
   isLongTerm: boolean;
+  notes?: string;
+}
+
+export interface CreateDonationInput {
+  grantId: string;
+  exerciseId?: string;
+  releaseId?: string;
+  donationDate: string;
+  shares: number;
+  fmvAtDonation: number;
+  recipient?: string;
   notes?: string;
 }
 

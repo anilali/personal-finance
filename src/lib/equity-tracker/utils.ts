@@ -99,15 +99,23 @@ export function generateDateRangeSchedule(opts: GenerateDateRangeOptions): Gener
 // ── Grant Summary Computation ───────────────────────────────────
 
 export function computeGrantSummary(grant: GrantWithVesting): GrantSummary {
-  const vestedShares = grant.vestEvents
-    .filter((v) => v.status === "vested")
-    .reduce((sum, v) => sum + v.shares, 0);
+  const isRsu = grant.grantType === "rsu";
+
+  // For RSUs, "vested" means released by the broker — track gross released shares.
+  // For options, vesting is event-driven via vest_events.
+  const vestedShares = isRsu
+    ? grant.releases.reduce((sum, r) => sum + r.sharesReleased, 0)
+    : grant.vestEvents
+        .filter((v) => v.status === "vested")
+        .reduce((sum, v) => sum + v.shares, 0);
 
   const forfeitedShares = grant.vestEvents
     .filter((v) => v.status === "forfeited")
     .reduce((sum, v) => sum + v.shares, 0);
 
-  const isRsu = grant.grantType === "rsu";
+  // RSU: only shares received (after withholding) are actually deliverable / sellable.
+  const receivedShares = grant.releases.reduce((sum, r) => sum + r.sharesReceived, 0);
+
   const exercisedShares = grant.exercises.reduce((sum, e) => sum + e.shares, 0);
 
   const totalCostBasis = grant.exercises.reduce(
@@ -125,10 +133,11 @@ export function computeGrantSummary(grant: GrantWithVesting): GrantSummary {
     : false;
 
   const soldShares = grant.sales.reduce((sum, s) => sum + s.shares, 0);
-  // RSU: held = vested - sold (no exercise step). Options: held = exercised - sold.
+  const donatedShares = grant.donations.reduce((sum, d) => sum + d.shares, 0);
+  // RSU: held = received (after withholding) - sold - donated. Options: held = exercised - sold - donated.
   const heldShares = isRsu
-    ? Math.max(0, vestedShares - soldShares)
-    : Math.max(0, exercisedShares - soldShares);
+    ? Math.max(0, receivedShares - soldShares - donatedShares)
+    : Math.max(0, exercisedShares - soldShares - donatedShares);
 
   const totalProceeds = grant.sales.reduce(
     (sum, s) => sum + s.shares * s.salePrice, 0,
@@ -151,6 +160,7 @@ export function computeGrantSummary(grant: GrantWithVesting): GrantSummary {
     exercisedShares,
     exercisableShares,
     soldShares,
+    donatedShares,
     heldShares,
     remainingOptions,
     currentSpread: spread,
@@ -169,28 +179,30 @@ export function computeGrantSummary(grant: GrantWithVesting): GrantSummary {
 
 export function computeLots(grant: GrantWithVesting): Lot[] {
   if (grant.grantType === "rsu") {
-    // RSU: each vested event is a lot, cost basis = FMV at vest
-    return grant.vestEvents
-      .filter((v) => v.status === "vested")
-      .map((v) => {
-        const sharesSold = grant.sales
-          .filter((s) => s.vestEventId === v.id)
-          .reduce((sum, s) => sum + s.shares, 0);
+    // RSU: each release is a lot. Only shares_received land in the broker account;
+    // cost basis per share = FMV at release.
+    return grant.releases.map((r) => {
+      const sharesSold = grant.sales
+        .filter((s) => s.releaseId === r.id)
+        .reduce((sum, s) => sum + s.shares, 0);
+      const sharesDonated = grant.donations
+        .filter((d) => d.releaseId === r.id)
+        .reduce((sum, d) => sum + d.shares, 0);
 
-        return {
-          id: v.id,
-          source: "vest" as const,
-          vestEventId: v.id,
-          referenceId: null,
-          acquiredDate: v.vestDate,
-          costBasis: v.fmvAtVest ?? 0,
-          sharesAcquired: v.shares,
-          sharesSold,
-          sharesRemaining: Math.max(0, v.shares - sharesSold),
-          grantType: grant.grantType,
-          grantDate: grant.grantDate,
-        };
-      });
+      return {
+        id: r.id,
+        source: "release" as const,
+        releaseId: r.id,
+        referenceId: r.referenceId,
+        acquiredDate: r.releaseDate,
+        costBasis: r.fmvAtRelease ?? 0,
+        sharesAcquired: r.sharesReceived,
+        sharesSold,
+        sharesRemaining: Math.max(0, r.sharesReceived - sharesSold - sharesDonated),
+        grantType: grant.grantType,
+        grantDate: grant.grantDate,
+      };
+    });
   }
 
   // Options: each exercise is a lot
@@ -198,6 +210,9 @@ export function computeLots(grant: GrantWithVesting): Lot[] {
     const sharesSold = grant.sales
       .filter((s) => s.exerciseId === ex.id)
       .reduce((sum, s) => sum + s.shares, 0);
+    const sharesDonated = grant.donations
+      .filter((d) => d.exerciseId === ex.id)
+      .reduce((sum, d) => sum + d.shares, 0);
 
     // NSO: cost basis = FMV at exercise (spread already taxed as income)
     // ISO: cost basis = strike price (no income at exercise for regular tax)
@@ -214,7 +229,7 @@ export function computeLots(grant: GrantWithVesting): Lot[] {
       costBasis,
       sharesAcquired: ex.shares,
       sharesSold,
-      sharesRemaining: Math.max(0, ex.shares - sharesSold),
+      sharesRemaining: Math.max(0, ex.shares - sharesSold - sharesDonated),
       grantType: grant.grantType,
       grantDate: grant.grantDate,
     };

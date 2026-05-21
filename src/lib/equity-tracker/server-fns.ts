@@ -4,16 +4,20 @@ import {
   equityCompanies,
   equityGrants,
   equityVestEvents,
+  equityReleases,
   equityExercises,
   equitySales,
+  equityDonations,
 } from "@/db/schema";
 import { eq, desc, lte, and, or } from "drizzle-orm";
 import type {
   Company,
   Grant,
   VestEvent,
+  Release,
   Exercise,
   Sale,
+  Donation,
   CompanyWithGrants,
   GrantWithVesting,
   GrantType,
@@ -25,6 +29,7 @@ import type {
   UpdateGrantInput,
   CreateSaleInput,
   CreateExerciseInput,
+  CreateDonationInput,
 } from "./types";
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -52,8 +57,24 @@ function toVestEvent(row: typeof equityVestEvents.$inferSelect): VestEvent {
   return {
     ...row,
     shares: Number(row.shares),
-    fmvAtVest: row.fmvAtVest ? Number(row.fmvAtVest) : null,
     status: row.status as VestStatus,
+  };
+}
+
+function toRelease(row: typeof equityReleases.$inferSelect): Release {
+  return {
+    ...row,
+    sharesReleased: Number(row.sharesReleased),
+    sharesReceived: Number(row.sharesReceived),
+    fmvAtRelease: row.fmvAtRelease ? Number(row.fmvAtRelease) : null,
+  };
+}
+
+function toDonation(row: typeof equityDonations.$inferSelect): Donation {
+  return {
+    ...row,
+    shares: Number(row.shares),
+    fmvAtDonation: Number(row.fmvAtDonation),
   };
 }
 
@@ -178,6 +199,12 @@ export const getGrant = createServerFn({ method: "GET" })
       .where(eq(equityVestEvents.grantId, data.grantId))
       .orderBy(equityVestEvents.vestDate);
 
+    const releaseRows = await db
+      .select()
+      .from(equityReleases)
+      .where(eq(equityReleases.grantId, data.grantId))
+      .orderBy(equityReleases.releaseDate);
+
     const exerciseRows = await db
       .select()
       .from(equityExercises)
@@ -190,12 +217,20 @@ export const getGrant = createServerFn({ method: "GET" })
       .where(eq(equitySales.grantId, data.grantId))
       .orderBy(desc(equitySales.saleDate));
 
+    const donationRows = await db
+      .select()
+      .from(equityDonations)
+      .where(eq(equityDonations.grantId, data.grantId))
+      .orderBy(desc(equityDonations.donationDate));
+
     return {
       ...toGrant(grantRow),
       company: toCompany(companyRow),
       vestEvents: vestRows.map(toVestEvent),
+      releases: releaseRows.map(toRelease),
       exercises: exerciseRows.map(toExercise),
       sales: saleRows.map(toSale),
+      donations: donationRows.map(toDonation),
     };
   });
 
@@ -260,13 +295,12 @@ export const deleteGrant = createServerFn({ method: "POST" })
 
 export const updateVestEvent = createServerFn({ method: "POST" })
   .inputValidator(
-    (input: { id: string; vestDate?: string; shares?: number; fmvAtVest?: number; status?: string }) => input,
+    (input: { id: string; vestDate?: string; shares?: number; status?: string }) => input,
   )
   .handler(async ({ data }): Promise<VestEvent> => {
     const updateData: Record<string, any> = {};
     if (data.vestDate !== undefined) updateData.vestDate = data.vestDate;
     if (data.shares !== undefined) updateData.shares = String(data.shares);
-    if (data.fmvAtVest !== undefined) updateData.fmvAtVest = data.fmvAtVest ? String(data.fmvAtVest) : null;
     if (data.status !== undefined) updateData.status = data.status;
 
     const [row] = await db
@@ -312,6 +346,74 @@ export const bulkCreateVestEvents = createServerFn({ method: "POST" })
       })),
     );
     return { count: data.events.length };
+  });
+
+// ── Releases ────────────────────────────────────────────────────
+
+export const createRelease = createServerFn({ method: "POST" })
+  .inputValidator(
+    (input: {
+      grantId: string;
+      referenceId?: string;
+      releaseDate: string;
+      sharesReleased: number;
+      sharesReceived: number;
+      fmvAtRelease?: number;
+      notes?: string;
+    }) => input,
+  )
+  .handler(async ({ data }): Promise<Release> => {
+    const [row] = await db
+      .insert(equityReleases)
+      .values({
+        grantId: data.grantId,
+        referenceId: data.referenceId || null,
+        releaseDate: data.releaseDate,
+        sharesReleased: String(data.sharesReleased),
+        sharesReceived: String(data.sharesReceived),
+        fmvAtRelease: data.fmvAtRelease != null ? String(data.fmvAtRelease) : null,
+        notes: data.notes || null,
+      })
+      .returning();
+    return toRelease(row);
+  });
+
+export const updateRelease = createServerFn({ method: "POST" })
+  .inputValidator(
+    (input: {
+      id: string;
+      referenceId?: string;
+      releaseDate?: string;
+      sharesReleased?: number;
+      sharesReceived?: number;
+      fmvAtRelease?: number;
+      notes?: string;
+    }) => input,
+  )
+  .handler(async ({ data }): Promise<Release> => {
+    const { id, ...fields } = data;
+    const updateData: Record<string, any> = {};
+    if (fields.referenceId !== undefined) updateData.referenceId = fields.referenceId || null;
+    if (fields.releaseDate !== undefined) updateData.releaseDate = fields.releaseDate;
+    if (fields.sharesReleased !== undefined) updateData.sharesReleased = String(fields.sharesReleased);
+    if (fields.sharesReceived !== undefined) updateData.sharesReceived = String(fields.sharesReceived);
+    if (fields.fmvAtRelease !== undefined)
+      updateData.fmvAtRelease = fields.fmvAtRelease != null ? String(fields.fmvAtRelease) : null;
+    if (fields.notes !== undefined) updateData.notes = fields.notes || null;
+
+    const [row] = await db
+      .update(equityReleases)
+      .set(updateData)
+      .where(eq(equityReleases.id, id))
+      .returning();
+    return toRelease(row);
+  });
+
+export const deleteRelease = createServerFn({ method: "POST" })
+  .inputValidator((input: { id: string }) => input)
+  .handler(async ({ data }) => {
+    await db.delete(equityReleases).where(eq(equityReleases.id, data.id));
+    return { success: true };
   });
 
 // ── Exercises ───────────────────────────────────────────────────
@@ -379,7 +481,7 @@ export const createSale = createServerFn({ method: "POST" })
       .values({
         grantId: data.grantId,
         exerciseId: data.exerciseId || null,
-        vestEventId: data.vestEventId || null,
+        releaseId: data.releaseId || null,
         referenceId: data.referenceId || null,
         saleDate: data.saleDate,
         shares: String(data.shares),
@@ -394,13 +496,13 @@ export const createSale = createServerFn({ method: "POST" })
 
 export const updateSale = createServerFn({ method: "POST" })
   .inputValidator(
-    (input: { id: string; exerciseId?: string; vestEventId?: string; referenceId?: string; saleDate?: string; shares?: number; salePrice?: number; costBasisPerShare?: number; isLongTerm?: boolean; notes?: string }) => input,
+    (input: { id: string; exerciseId?: string; releaseId?: string; referenceId?: string; saleDate?: string; shares?: number; salePrice?: number; costBasisPerShare?: number; isLongTerm?: boolean; notes?: string }) => input,
   )
   .handler(async ({ data }): Promise<Sale> => {
     const { id, ...fields } = data;
     const updateData: Record<string, any> = {};
     if (fields.exerciseId !== undefined) updateData.exerciseId = fields.exerciseId || null;
-    if (fields.vestEventId !== undefined) updateData.vestEventId = fields.vestEventId || null;
+    if (fields.releaseId !== undefined) updateData.releaseId = fields.releaseId || null;
     if (fields.referenceId !== undefined) updateData.referenceId = fields.referenceId || null;
     if (fields.saleDate !== undefined) updateData.saleDate = fields.saleDate;
     if (fields.shares !== undefined) updateData.shares = String(fields.shares);
@@ -421,6 +523,66 @@ export const deleteSale = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string }) => input)
   .handler(async ({ data }) => {
     await db.delete(equitySales).where(eq(equitySales.id, data.id));
+    return { success: true };
+  });
+
+// ── Donations ───────────────────────────────────────────────────
+
+export const createDonation = createServerFn({ method: "POST" })
+  .inputValidator((input: CreateDonationInput) => input)
+  .handler(async ({ data }): Promise<Donation> => {
+    const [row] = await db
+      .insert(equityDonations)
+      .values({
+        grantId: data.grantId,
+        exerciseId: data.exerciseId || null,
+        releaseId: data.releaseId || null,
+        donationDate: data.donationDate,
+        shares: String(data.shares),
+        fmvAtDonation: String(data.fmvAtDonation),
+        recipient: data.recipient || null,
+        notes: data.notes || null,
+      })
+      .returning();
+    return toDonation(row);
+  });
+
+export const updateDonation = createServerFn({ method: "POST" })
+  .inputValidator(
+    (input: {
+      id: string;
+      exerciseId?: string;
+      releaseId?: string;
+      donationDate?: string;
+      shares?: number;
+      fmvAtDonation?: number;
+      recipient?: string;
+      notes?: string;
+    }) => input,
+  )
+  .handler(async ({ data }): Promise<Donation> => {
+    const { id, ...fields } = data;
+    const updateData: Record<string, any> = {};
+    if (fields.exerciseId !== undefined) updateData.exerciseId = fields.exerciseId || null;
+    if (fields.releaseId !== undefined) updateData.releaseId = fields.releaseId || null;
+    if (fields.donationDate !== undefined) updateData.donationDate = fields.donationDate;
+    if (fields.shares !== undefined) updateData.shares = String(fields.shares);
+    if (fields.fmvAtDonation !== undefined) updateData.fmvAtDonation = String(fields.fmvAtDonation);
+    if (fields.recipient !== undefined) updateData.recipient = fields.recipient || null;
+    if (fields.notes !== undefined) updateData.notes = fields.notes || null;
+
+    const [row] = await db
+      .update(equityDonations)
+      .set(updateData)
+      .where(eq(equityDonations.id, id))
+      .returning();
+    return toDonation(row);
+  });
+
+export const deleteDonation = createServerFn({ method: "POST" })
+  .inputValidator((input: { id: string }) => input)
+  .handler(async ({ data }) => {
+    await db.delete(equityDonations).where(eq(equityDonations.id, data.id));
     return { success: true };
   });
 

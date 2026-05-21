@@ -71,7 +71,7 @@ export function SaleTable({
                   <td className="px-4 py-2.5 text-sm font-medium">{sale.referenceId || "—"}</td>
                   <td className="px-4 py-2.5 text-xs text-muted-foreground">
                     {(() => {
-                      const lot = lots.find((l) => l.id === (sale.exerciseId ?? sale.vestEventId));
+                      const lot = lots.find((l) => l.id === (sale.exerciseId ?? sale.releaseId));
                       return lot ? (lot.referenceId || formatDate(lot.acquiredDate)) : "—";
                     })()}
                   </td>

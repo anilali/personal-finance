@@ -9,8 +9,10 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GrantSummaryCard } from "./grant-summary-card";
 import { VestingTable } from "./vesting-table";
+import { ReleaseTable } from "./release-table";
 import { ExerciseTable } from "./exercise-table";
 import { SaleTable } from "./sale-table";
+import { DonationTable } from "./donation-table";
 import { GrantForm } from "./grant-form";
 import { ScheduleGenerator } from "./schedule-generator";
 import { ExerciseForm } from "./exercise-form";
@@ -175,8 +177,10 @@ export function GrantDetail({ grant, activeTab, onTabChange }: GrantDetailProps)
       <Tabs value={activeTab} onValueChange={onTabChange}>
         <TabsList variant="line" className="w-full justify-start border-b border-border pb-0">
           <TabsTrigger value="vesting" className="px-4 py-2">Vesting</TabsTrigger>
+          {!isOptions && <TabsTrigger value="releases" className="px-4 py-2">Releases</TabsTrigger>}
           {isOptions && <TabsTrigger value="exercises" className="px-4 py-2">Exercises</TabsTrigger>}
           <TabsTrigger value="sales" className="px-4 py-2">Sales</TabsTrigger>
+          {grant.donations.length > 0 && <TabsTrigger value="donations" className="px-4 py-2">Donations</TabsTrigger>}
         </TabsList>
 
         {/* Vesting tab */}
@@ -246,9 +250,22 @@ export function GrantDetail({ grant, activeTab, onTabChange }: GrantDetailProps)
               </div>
             )}
 
-            <VestingTable vestEvents={grant.vestEvents} separationDate={grant.company.separationDate} showFmv={!isOptions} />
+            <VestingTable vestEvents={grant.vestEvents} separationDate={grant.company.separationDate} />
           </div>
         </TabsContent>
+
+        {/* Releases tab — RSU only */}
+        {!isOptions && (
+          <TabsContent value="releases">
+            <div className="space-y-3 pt-2">
+              <span className="text-xs text-muted-foreground">
+                {formatShares(summary.heldShares + summary.soldShares)} shares received (net of withholding)
+                {summary.heldShares > 0 && ` — ${formatShares(summary.heldShares)} still held`}
+              </span>
+              <ReleaseTable releases={grant.releases} />
+            </div>
+          </TabsContent>
+        )}
 
         {/* Exercises tab */}
         <TabsContent value="exercises">
@@ -300,6 +317,18 @@ export function GrantDetail({ grant, activeTab, onTabChange }: GrantDetailProps)
             />
           </div>
         </TabsContent>
+
+        {/* Donations tab */}
+        {grant.donations.length > 0 && (
+          <TabsContent value="donations">
+            <div className="space-y-3 pt-2">
+              <span className="text-xs text-muted-foreground">
+                {formatShares(summary.donatedShares)} shares donated to charity — FMV-at-donation deductible, no capital gains
+              </span>
+              <DonationTable donations={grant.donations} lots={lots} />
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Dialogs */}

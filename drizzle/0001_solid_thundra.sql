@@ -1,0 +1,1 @@
+ALTER TABLE "equity_vest_events" ADD COLUMN "shares_received" numeric(12, 4);
