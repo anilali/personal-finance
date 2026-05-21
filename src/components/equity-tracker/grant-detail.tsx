@@ -28,6 +28,7 @@ interface GrantDetailProps {
 const GRANT_TYPE_LABEL: Record<string, string> = {
   iso: "ISO",
   nso: "NSO",
+  rsu: "RSU",
 };
 
 export function GrantDetail({ grant, activeTab, onTabChange }: GrantDetailProps) {
@@ -44,6 +45,7 @@ export function GrantDetail({ grant, activeTab, onTabChange }: GrantDetailProps)
   const [newDate, setNewDate] = useState("");
   const [newShares, setNewShares] = useState("");
 
+  const isOptions = grant.grantType !== "rsu";
   const summary = computeGrantSummary(grant);
   const lots = computeLots(grant);
 
@@ -131,8 +133,10 @@ export function GrantDetail({ grant, activeTab, onTabChange }: GrantDetailProps)
               <Badge
                 className={`text-[10px] ${
                   grant.grantType === "iso"
-                    ? "border-blue-300 bg-blue-50 text-blue-700"
-                    : "border-amber-300 bg-amber-50 text-amber-700"
+                    ? "border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300"
+                    : grant.grantType === "rsu"
+                      ? "border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-300"
+                      : "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300"
                 }`}
               >
                 {GRANT_TYPE_LABEL[grant.grantType]}
@@ -141,7 +145,9 @@ export function GrantDetail({ grant, activeTab, onTabChange }: GrantDetailProps)
           </div>
           <div className="mt-1 flex items-center gap-4 text-sm text-muted-foreground">
             <span><span className="font-semibold">Granted:</span> {formatDate(grant.grantDate)}</span>
-            <span><span className="font-semibold">Strike:</span> {formatCurrency(grant.strikePrice)}</span>
+            {isOptions && grant.strikePrice != null && (
+              <span><span className="font-semibold">Strike:</span> {formatCurrency(grant.strikePrice)}</span>
+            )}
             {grant.expirationDate && (
               <span><span className="font-semibold">Expires:</span> {formatDate(grant.expirationDate)}</span>
             )}
@@ -161,7 +167,7 @@ export function GrantDetail({ grant, activeTab, onTabChange }: GrantDetailProps)
       <Separator />
 
       {/* Summary */}
-      <GrantSummaryCard summary={summary} daysToExpiration={daysToExpiration} />
+      <GrantSummaryCard summary={summary} grantType={grant.grantType} daysToExpiration={daysToExpiration} />
 
       <Separator />
 
@@ -169,7 +175,7 @@ export function GrantDetail({ grant, activeTab, onTabChange }: GrantDetailProps)
       <Tabs value={activeTab} onValueChange={onTabChange}>
         <TabsList variant="line" className="w-full justify-start border-b border-border pb-0">
           <TabsTrigger value="vesting" className="px-4 py-2">Vesting</TabsTrigger>
-          <TabsTrigger value="exercises" className="px-4 py-2">Exercises</TabsTrigger>
+          {isOptions && <TabsTrigger value="exercises" className="px-4 py-2">Exercises</TabsTrigger>}
           <TabsTrigger value="sales" className="px-4 py-2">Sales</TabsTrigger>
         </TabsList>
 
@@ -177,7 +183,7 @@ export function GrantDetail({ grant, activeTab, onTabChange }: GrantDetailProps)
         <TabsContent value="vesting">
           <div className="space-y-3 pt-2">
             {grant.vestEvents.length > 0 && scheduledShares !== grant.totalShares && (
-              <div className="rounded-lg border border-amber-300/50 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
                 <p className="font-semibold">Schedule doesn't match grant total</p>
                 <p className="mt-0.5">
                   Scheduled: {formatShares(scheduledShares)} shares — Grant: {formatShares(grant.totalShares)} shares
@@ -240,7 +246,7 @@ export function GrantDetail({ grant, activeTab, onTabChange }: GrantDetailProps)
               </div>
             )}
 
-            <VestingTable vestEvents={grant.vestEvents} separationDate={grant.company.separationDate} />
+            <VestingTable vestEvents={grant.vestEvents} separationDate={grant.company.separationDate} showFmv={!isOptions} />
           </div>
         </TabsContent>
 
@@ -274,7 +280,7 @@ export function GrantDetail({ grant, activeTab, onTabChange }: GrantDetailProps)
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">
-                {formatShares(summary.heldShares)} shares held (exercised but not sold)
+                {formatShares(summary.heldShares)} shares held ({isOptions ? "exercised" : "vested"} but not sold)
                 {summary.soldShares > 0 && ` — ${formatShares(summary.soldShares)} sold`}
               </span>
               {summary.heldShares > 0 && (
@@ -300,7 +306,7 @@ export function GrantDetail({ grant, activeTab, onTabChange }: GrantDetailProps)
       <GrantForm open={editOpen} onClose={() => setEditOpen(false)} companyId={grant.companyId} grant={grant} />
       <ScheduleGenerator open={generatorOpen} onClose={() => setGeneratorOpen(false)} grantId={grant.id} totalShares={grant.totalShares} existingVestCount={grant.vestEvents.length} />
       <ExerciseForm open={exerciseOpen} onClose={() => { setExerciseOpen(false); setEditingExercise(null); }} grantId={grant.id} strikePrice={grant.strikePrice} currentPrice={grant.company.currentPrice} exercisableShares={summary.exercisableShares} exercise={editingExercise} />
-      <SaleForm open={saleOpen} onClose={() => { setSaleOpen(false); setEditingSale(null); }} grantId={grant.id} strikePrice={grant.strikePrice} lots={lots} sale={editingSale} />
+      <SaleForm open={saleOpen} onClose={() => { setSaleOpen(false); setEditingSale(null); }} grantId={grant.id} grantType={grant.grantType} strikePrice={grant.strikePrice ?? 0} lots={lots} sale={editingSale} />
     </div>
   );
 }

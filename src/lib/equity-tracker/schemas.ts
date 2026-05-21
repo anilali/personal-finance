@@ -25,10 +25,10 @@ export const companySchema = z.object({
 export const grantSchema = z.object({
   companyId: z.string().uuid(),
   grantId: z.string().optional(),
-  grantType: z.enum(["iso", "nso"]),
+  grantType: z.enum(["iso", "nso", "rsu"]),
   grantDate: z.string().min(1, "Grant date is required"),
   totalShares: positiveNumber,
-  strikePrice: money,
+  strikePrice: optionalMoney,
   grantPrice: optionalMoney,
   expirationDate: z.string().optional(),
   notes: z.string().optional(),
@@ -74,6 +74,7 @@ export const exerciseSchema = z.object({
 export const saleSchema = z.object({
   grantId: z.string().uuid(),
   exerciseId: z.string().optional(),
+  vestEventId: z.string().optional(),
   referenceId: z.string().optional(),
   saleDate: z.string().min(1, "Sale date is required"),
   shares: positiveNumber,

@@ -20,16 +20,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { saleSchema, type SaleFormData } from "@/lib/equity-tracker/schemas";
 import { createSale, updateSale } from "@/lib/equity-tracker/server-fns";
 import { formatCurrency, formatShares, formatDate, formatDateShort, isLongTermHolding, isIsoQualifyingDisposition } from "@/lib/equity-tracker/utils";
 import type { Sale, Lot } from "@/lib/equity-tracker/types";
-import { Badge } from "@/components/ui/badge";
 
 interface SaleFormProps {
   open: boolean;
   onClose: () => void;
   grantId: string;
+  grantType: string;
   strikePrice: number;
   lots: Lot[];
   sale?: Sale | null;
@@ -39,20 +40,23 @@ export function SaleForm({
   open,
   onClose,
   grantId,
+  grantType,
   strikePrice,
   lots,
   sale,
 }: SaleFormProps) {
   const router = useRouter();
   const isEdit = !!sale;
+  const isRsu = grantType === "rsu";
 
-  const availableLots = lots.filter((l) => l.sharesRemaining > 0 || (isEdit && l.exerciseId === sale?.exerciseId));
+  const availableLots = lots.filter((l) => l.sharesRemaining > 0 || (isEdit && l.id === (sale?.exerciseId ?? sale?.vestEventId)));
 
   const form = useForm<SaleFormData>({
     resolver: zodResolver(saleSchema),
     defaultValues: {
       grantId,
       exerciseId: "",
+      vestEventId: "",
       referenceId: "",
       saleDate: "",
       shares: 0,
@@ -68,6 +72,7 @@ export function SaleForm({
       form.reset({
         grantId,
         exerciseId: sale?.exerciseId ?? "",
+        vestEventId: sale?.vestEventId ?? "",
         referenceId: sale?.referenceId ?? "",
         saleDate: sale?.saleDate ?? new Date().toISOString().split("T")[0],
         shares: sale?.shares ?? 0,
@@ -79,21 +84,22 @@ export function SaleForm({
     }
   }, [open, sale]);
 
-  const selectedExerciseId = form.watch("exerciseId");
-  const selectedLot = lots.find((l) => l.exerciseId === selectedExerciseId);
+  // Track which lot is selected by its unified id
+  const selectedLotId = isRsu ? form.watch("vestEventId") : form.watch("exerciseId");
+  const selectedLot = lots.find((l) => l.id === selectedLotId);
   const saleDate = form.watch("saleDate");
   const maxShares = selectedLot
-    ? selectedLot.sharesRemaining + (isEdit && sale?.exerciseId === selectedExerciseId ? sale.shares : 0)
+    ? selectedLot.sharesRemaining + (isEdit && selectedLot.id === (sale?.exerciseId ?? sale?.vestEventId) ? sale!.shares : 0)
     : 0;
 
-  // Derive cost basis and holding period from lot + sale date
+  // Derive cost basis and holding period
   const costBasisPerShare = selectedLot?.costBasis ?? strikePrice;
   const longTerm = selectedLot && saleDate
-    ? isLongTermHolding(selectedLot.exerciseDate, saleDate)
+    ? isLongTermHolding(selectedLot.acquiredDate, saleDate)
     : false;
-  const isIso = selectedLot?.grantType === "iso";
+  const isIso = grantType === "iso";
   const qualifying = isIso && selectedLot && saleDate
-    ? isIsoQualifyingDisposition(selectedLot.grantDate, selectedLot.exerciseDate, saleDate)
+    ? isIsoQualifyingDisposition(selectedLot.grantDate, selectedLot.acquiredDate, saleDate)
     : null;
 
   const shares = form.watch("shares") || 0;
@@ -102,9 +108,19 @@ export function SaleForm({
   const totalCost = shares * costBasisPerShare;
   const gainLoss = proceeds - totalCost;
 
+  const handleSelectLot = (lotId: string) => {
+    if (isRsu) {
+      form.setValue("vestEventId", lotId);
+      form.setValue("exerciseId", "");
+    } else {
+      form.setValue("exerciseId", lotId);
+      form.setValue("vestEventId", "");
+    }
+  };
+
   const onSubmit = async (data: SaleFormData) => {
-    if (!data.exerciseId) {
-      toast.error("Select an exercise lot");
+    if (!selectedLotId) {
+      toast.error("Select a lot");
       return;
     }
     if (data.shares > maxShares) {
@@ -114,6 +130,8 @@ export function SaleForm({
     try {
       const payload = {
         ...data,
+        exerciseId: isRsu ? undefined : selectedLotId,
+        vestEventId: isRsu ? selectedLotId : undefined,
         costBasisPerShare,
         isLongTerm: longTerm,
       };
@@ -121,7 +139,8 @@ export function SaleForm({
         await updateSale({
           data: {
             id: sale.id,
-            exerciseId: payload.exerciseId || undefined,
+            exerciseId: payload.exerciseId,
+            vestEventId: payload.vestEventId,
             referenceId: payload.referenceId || undefined,
             saleDate: payload.saleDate,
             shares: payload.shares,
@@ -150,30 +169,34 @@ export function SaleForm({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Sale" : "Log Sale"}</DialogTitle>
           <DialogDescription>
-            Select an exercise lot to sell from.
+            Select a {isRsu ? "vest" : "exercise"} lot to sell from.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* Lot picker */}
           <div className="space-y-1.5">
-            <Label>Exercise lot</Label>
+            <Label>{isRsu ? "Vest lot" : "Exercise lot"}</Label>
             {availableLots.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No shares available to sell. Exercise shares first.</p>
+              <p className="text-sm text-muted-foreground">
+                {isRsu
+                  ? "No vested shares available to sell."
+                  : "No shares available to sell. Exercise shares first."}
+              </p>
             ) : (
               <Select
-                value={selectedExerciseId || ""}
-                onValueChange={(v) => form.setValue("exerciseId", v)}
+                value={selectedLotId || ""}
+                onValueChange={handleSelectLot}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select a lot..." />
                 </SelectTrigger>
                 <SelectContent>
                   {availableLots.map((lot) => (
-                    <SelectItem key={lot.exerciseId} value={lot.exerciseId}>
+                    <SelectItem key={lot.id} value={lot.id}>
                       <span className="flex items-center gap-2 text-muted-foreground">
                         {lot.referenceId && <span>{lot.referenceId}</span>}
-                        <span>{formatDateShort(lot.exerciseDate)}</span>
+                        <span>{formatDateShort(lot.acquiredDate)}</span>
                         <span>{formatShares(lot.sharesRemaining)} avail</span>
                         <span>@ {formatCurrency(lot.costBasis)}</span>
                       </span>
@@ -190,8 +213,8 @@ export function SaleForm({
               <div className="rounded-lg border border-border bg-secondary/30 px-4 py-2.5 flex items-center justify-between text-sm">
                 <div className="flex items-center gap-4">
                   <span>
-                    <span className="text-muted-foreground">Exercised:</span>{" "}
-                    <span className="font-medium">{formatDate(selectedLot.exerciseDate)}</span>
+                    <span className="text-muted-foreground">{isRsu ? "Vested:" : "Exercised:"}</span>{" "}
+                    <span className="font-medium">{formatDate(selectedLot.acquiredDate)}</span>
                   </span>
                   <span>
                     <span className="text-muted-foreground">Cost basis:</span>{" "}
@@ -203,7 +226,7 @@ export function SaleForm({
                     variant="outline"
                     className={`text-[10px] ${
                       longTerm
-                        ? "border-green-300 bg-green-50 text-green-700"
+                        ? "border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-300"
                         : "border-orange-300 bg-orange-50 text-orange-700"
                     }`}
                   >
@@ -281,7 +304,7 @@ export function SaleForm({
                     </span>
                   </div>
                   {isIso && qualifying !== null && (
-                    <div className={`pt-1.5 border-t border-border mt-1.5 text-xs ${qualifying ? "text-green-600" : "text-amber-700"}`}>
+                    <div className={`pt-1.5 border-t border-border mt-1.5 text-xs ${qualifying ? "text-green-600" : "text-amber-700 dark:text-amber-300"}`}>
                       {qualifying
                         ? "Qualifying disposition — entire gain taxed as long-term capital gain."
                         : "Disqualifying disposition — spread at exercise will be taxed as ordinary income."}

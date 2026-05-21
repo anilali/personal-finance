@@ -67,6 +67,9 @@ export function GrantForm({ open, onClose, companyId, grant, onCreated }: GrantF
     }
   }, [open, grant]);
 
+  const grantType = form.watch("grantType");
+  const isRsu = grantType === "rsu";
+
   const onSubmit = async (data: GrantFormData) => {
     try {
       if (isEdit) {
@@ -105,7 +108,7 @@ export function GrantForm({ open, onClose, companyId, grant, onCreated }: GrantF
           <DialogDescription>
             {isEdit
               ? "Update grant details."
-              : "Add a new option grant. You can set up the vesting schedule after creating it."}
+              : "Add a new grant. You can set up the vesting schedule after creating it."}
           </DialogDescription>
         </DialogHeader>
 
@@ -119,8 +122,8 @@ export function GrantForm({ open, onClose, companyId, grant, onCreated }: GrantF
             <div className="space-y-1.5">
               <Label>Grant type</Label>
               <Select
-                value={form.watch("grantType")}
-                onValueChange={(v) => form.setValue("grantType", v as "iso" | "nso")}
+                value={grantType}
+                onValueChange={(v) => form.setValue("grantType", v as "iso" | "nso" | "rsu")}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -128,6 +131,7 @@ export function GrantForm({ open, onClose, companyId, grant, onCreated }: GrantF
                 <SelectContent>
                   <SelectItem value="iso">ISO</SelectItem>
                   <SelectItem value="nso">NSO</SelectItem>
+                  <SelectItem value="rsu">RSU</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -141,9 +145,9 @@ export function GrantForm({ open, onClose, companyId, grant, onCreated }: GrantF
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className={`grid gap-4 ${isRsu ? "grid-cols-1" : "grid-cols-2"}`}>
             <div className="space-y-1.5">
-              <Label htmlFor="totalShares">Total shares</Label>
+              <Label htmlFor="totalShares">{isRsu ? "Total units" : "Total shares"}</Label>
               <Input
                 id="totalShares"
                 type="number"
@@ -156,43 +160,47 @@ export function GrantForm({ open, onClose, companyId, grant, onCreated }: GrantF
               )}
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="strikePrice">Strike price</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
-                <Input
-                  id="strikePrice"
-                  type="number"
-                  step="0.0001"
-                  min="0"
-                  className="pl-7"
-                  {...form.register("strikePrice", { valueAsNumber: true })}
-                />
+            {!isRsu && (
+              <div className="space-y-1.5">
+                <Label htmlFor="strikePrice">Strike price</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                  <Input
+                    id="strikePrice"
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    className="pl-7"
+                    {...form.register("strikePrice", { valueAsNumber: true })}
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="grantPrice">FMV at grant (optional)</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
-                <Input
-                  id="grantPrice"
-                  type="number"
-                  step="0.0001"
-                  min="0"
-                  className="pl-7"
-                  {...form.register("grantPrice", { valueAsNumber: true })}
-                />
+          {!isRsu && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="grantPrice">FMV at grant (optional)</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                  <Input
+                    id="grantPrice"
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    className="pl-7"
+                    {...form.register("grantPrice", { valueAsNumber: true })}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="expirationDate">Expiration date</Label>
+                <Input id="expirationDate" type="date" {...form.register("expirationDate")} />
               </div>
             </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="expirationDate">Expiration date</Label>
-              <Input id="expirationDate" type="date" {...form.register("expirationDate")} />
-            </div>
-          </div>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="notes">Notes (optional)</Label>

@@ -1,1 +1,4 @@
-approveBuilds: esbuild
+allowBuilds:
+  esbuild: true
+onlyBuiltDependencies:
+  - esbuild

@@ -51,7 +51,7 @@ function HomePage() {
             key={util.to}
             to={util.to}
             search={util.search as any}
-            className="group relative rounded-xl border border-border bg-white p-6 shadow-sm transition-all duration-200 hover:border-primary/30 hover:shadow-md"
+            className="group relative rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-200 hover:border-primary/30 hover:shadow-md"
           >
             <div className="flex items-start justify-between">
               <div className="flex size-11 items-center justify-center rounded-xl bg-gradient-accent shadow-sm">

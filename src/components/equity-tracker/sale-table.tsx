@@ -71,8 +71,8 @@ export function SaleTable({
                   <td className="px-4 py-2.5 text-sm font-medium">{sale.referenceId || "—"}</td>
                   <td className="px-4 py-2.5 text-xs text-muted-foreground">
                     {(() => {
-                      const lot = lots.find((l) => l.exerciseId === sale.exerciseId);
-                      return lot ? (lot.referenceId || formatDate(lot.exerciseDate)) : "—";
+                      const lot = lots.find((l) => l.id === (sale.exerciseId ?? sale.vestEventId));
+                      return lot ? (lot.referenceId || formatDate(lot.acquiredDate)) : "—";
                     })()}
                   </td>
                   <td className="px-4 py-2.5">{formatDate(sale.saleDate)}</td>
@@ -87,7 +87,7 @@ export function SaleTable({
                       variant="outline"
                       className={`text-[10px] ${
                         sale.isLongTerm
-                          ? "border-green-300 bg-green-50 text-green-700"
+                          ? "border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-300"
                           : "border-orange-300 bg-orange-50 text-orange-700"
                       }`}
                     >

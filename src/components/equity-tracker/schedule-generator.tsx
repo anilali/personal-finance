@@ -152,7 +152,7 @@ export function ScheduleGenerator({
                 className={cn(
                   "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                   mode === "standard"
-                    ? "bg-white text-foreground shadow-sm"
+                    ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -163,7 +163,7 @@ export function ScheduleGenerator({
                 className={cn(
                   "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                   mode === "date-range"
-                    ? "bg-white text-foreground shadow-sm"
+                    ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -296,7 +296,7 @@ export function ScheduleGenerator({
         ) : (
           <div className="space-y-4">
             {!sharesMatch && (
-              <div className="rounded-lg border border-amber-300/50 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
                 <p className="font-semibold">Schedule total doesn't match grant</p>
                 <p className="mt-0.5">
                   Schedule: {formatShares(previewTotal)} shares — Grant: {formatShares(totalShares)} shares

@@ -64,7 +64,7 @@ export function EstimateList({ estimates, onSelect, onNewEstimate }: EstimateLis
               key={est.id}
               type="button"
               onClick={() => onSelect(est.id)}
-              className="group relative rounded-xl border border-border bg-white p-5 text-left transition-all hover:border-primary/30 hover:shadow-md"
+              className="group relative rounded-xl border border-border bg-card p-5 text-left transition-all hover:border-primary/30 hover:shadow-md"
             >
               <div>
                 <div className="flex items-start justify-between">

@@ -83,7 +83,7 @@ function EquityTrackerPage() {
   } else {
     // Empty state
     content = (
-      <div className="rounded-xl border border-border bg-white shadow-sm">
+      <div className="rounded-xl border border-border bg-card shadow-sm">
         <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
           <div className="mb-4 rounded-full bg-secondary p-4">
             <TrendingUp className="size-8 text-muted-foreground" />

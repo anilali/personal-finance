@@ -143,7 +143,7 @@ export function PaymentsStep({ estimate }: PaymentsStepProps) {
 
       {/* Quarter summary */}
       {totalPayments > 0 && (
-        <div className="mt-6 max-w-lg rounded-lg bg-slate-50 p-4">
+        <div className="mt-6 max-w-lg rounded-lg bg-muted p-4">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">
             Quarterly Totals
           </p>

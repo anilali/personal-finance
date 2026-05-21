@@ -217,7 +217,7 @@ export function ResultsStep({ estimate, onBack, onNewEstimate }: ResultsStepProp
                   key={qp.quarter}
                   className={cn(
                     "flex items-center justify-between rounded-lg px-4 py-3",
-                    qp.isPast ? "bg-slate-50 opacity-60" : "bg-slate-50",
+                    qp.isPast ? "bg-muted opacity-60" : "bg-muted",
                   )}
                 >
                   <div className="flex items-center gap-3">

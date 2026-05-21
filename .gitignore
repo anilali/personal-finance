@@ -16,3 +16,8 @@ drizzle/meta
 
 # TanStack generated
 src/routeTree.gen.ts
+.tanstack
+
+# Claude Code local state
+.claude/*.lock
+.claude/settings.local.json

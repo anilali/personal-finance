@@ -187,7 +187,7 @@ export function BrokerageTradesForm({ defaultValues, onSubmit, onDelete }: Props
 
       {/* Summary */}
       {fields.length > 0 && (
-        <div className="rounded-lg bg-slate-50 p-4 space-y-1 text-sm">
+        <div className="rounded-lg bg-muted p-4 space-y-1 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Short-term gains/losses</span>
             <span className={totalShortTermGain >= 0 ? "text-emerald-600 font-medium" : "text-destructive font-medium"}>

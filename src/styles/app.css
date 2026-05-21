@@ -1,30 +1,90 @@
 @import "tailwindcss" source("../");
 
-@theme {
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(222 47% 11%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(222 47% 11%);
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(222 47% 11%);
-  --color-primary: hsl(239 84% 67%);
-  --color-primary-foreground: hsl(0 0% 100%);
-  --color-secondary: hsl(210 40% 96%);
-  --color-secondary-foreground: hsl(222 47% 11%);
-  --color-muted: hsl(210 40% 96%);
-  --color-muted-foreground: hsl(215 16% 47%);
-  --color-accent: hsl(210 40% 96%);
-  --color-accent-foreground: hsl(222 47% 11%);
-  --color-destructive: hsl(0 72% 51%);
-  --color-destructive-foreground: hsl(0 0% 100%);
-  --color-border: hsl(214 32% 91%);
-  --color-input: hsl(214 32% 91%);
-  --color-ring: hsl(239 84% 67%);
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(222 47% 11%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(222 47% 11%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(222 47% 11%);
+  --primary: hsl(239 84% 67%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(210 40% 96%);
+  --secondary-foreground: hsl(222 47% 11%);
+  --muted: hsl(210 40% 96%);
+  --muted-foreground: hsl(215 16% 47%);
+  --accent: hsl(210 40% 96%);
+  --accent-foreground: hsl(222 47% 11%);
+  --destructive: hsl(0 72% 51%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(214 32% 91%);
+  --input: hsl(214 32% 91%);
+  --ring: hsl(239 84% 67%);
   --radius: 0.625rem;
 
-  --color-gradient-start: hsl(239 84% 67%);
-  --color-gradient-mid: hsl(262 83% 58%);
-  --color-gradient-end: hsl(239 84% 67%);
+  --gradient-start: hsl(239 84% 67%);
+  --gradient-mid: hsl(262 83% 58%);
+  --gradient-end: hsl(239 84% 67%);
+
+  --page: hsl(210 40% 98%);
+  --grid-line: hsl(214 32% 91% / 0.5);
+  --glow: 239 84% 67%;
+
+  @variant dark {
+    --background: hsl(222 47% 6%);
+    --foreground: hsl(210 40% 98%);
+    --card: hsl(222 47% 9%);
+    --card-foreground: hsl(210 40% 98%);
+    --popover: hsl(222 47% 9%);
+    --popover-foreground: hsl(210 40% 98%);
+    --primary: hsl(239 84% 72%);
+    --primary-foreground: hsl(222 47% 11%);
+    --secondary: hsl(217 33% 15%);
+    --secondary-foreground: hsl(210 40% 98%);
+    --muted: hsl(217 33% 15%);
+    --muted-foreground: hsl(215 20% 65%);
+    --accent: hsl(217 33% 17%);
+    --accent-foreground: hsl(210 40% 98%);
+    --destructive: hsl(0 70% 55%);
+    --destructive-foreground: hsl(210 40% 98%);
+    --border: hsl(217 33% 20%);
+    --input: hsl(217 33% 20%);
+    --ring: hsl(239 84% 72%);
+
+    --gradient-start: hsl(239 84% 72%);
+    --gradient-mid: hsl(262 83% 68%);
+    --gradient-end: hsl(239 84% 72%);
+
+    --page: hsl(222 47% 4%);
+    --grid-line: hsl(217 33% 20% / 0.5);
+    --glow: 239 84% 72%;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-page: var(--page);
+  --radius: var(--radius);
 }
 
 @layer base {
@@ -40,32 +100,32 @@
 
 @layer utilities {
   .text-gradient {
-    background: linear-gradient(135deg, var(--color-gradient-start), var(--color-gradient-mid));
+    background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .bg-gradient-accent {
-    background: linear-gradient(135deg, var(--color-gradient-start), var(--color-gradient-mid));
+    background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid));
   }
 
   .bg-grid {
     background-image:
-      linear-gradient(to right, hsl(214 32% 91% / 0.5) 1px, transparent 1px),
-      linear-gradient(to bottom, hsl(214 32% 91% / 0.5) 1px, transparent 1px);
+      linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
     background-size: 4rem 4rem;
   }
 
   .glow {
     box-shadow:
-      0 0 20px hsl(239 84% 67% / 0.08),
-      0 0 60px hsl(239 84% 67% / 0.04);
+      0 0 20px hsl(var(--glow) / 0.08),
+      0 0 60px hsl(var(--glow) / 0.04);
   }
 
   .glow-sm {
     box-shadow:
-      0 0 10px hsl(239 84% 67% / 0.06),
-      0 0 30px hsl(239 84% 67% / 0.03);
+      0 0 10px hsl(var(--glow) / 0.06),
+      0 0 30px hsl(var(--glow) / 0.03);
   }
 }

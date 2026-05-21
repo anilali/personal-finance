@@ -232,7 +232,7 @@ export function ExerciseForm({
                   <Input id="filed83bDate" type="date" {...form.register("filed83bDate")} />
                 </div>
               ) : (
-                <div className={`text-xs ${deadlinePassed ? "text-destructive" : "text-amber-700"}`}>
+                <div className={`text-xs ${deadlinePassed ? "text-destructive" : "text-amber-700 dark:text-amber-300"}`}>
                   {deadlinePassed
                     ? `Deadline passed (${deadline83b ? formatDate(deadline83b) : ""}). 83(b) must be filed within 30 days of exercise.`
                     : `Must file by ${deadline83b ? formatDate(deadline83b) : ""} (30 days from exercise).`}

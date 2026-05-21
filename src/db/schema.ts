@@ -86,7 +86,7 @@ export const estimateDocuments = pgTable("estimate_documents", {
 
 // ── Equity Tracker ──────────────────────────────────────────────
 
-export const grantTypeEnum = pgEnum("grant_type", ["iso", "nso"]);
+export const grantTypeEnum = pgEnum("grant_type", ["iso", "nso", "rsu"]);
 
 export const grantStatusEnum = pgEnum("grant_status", [
   "active",
@@ -153,6 +153,8 @@ export const equitySales = pgTable("equity_sales", {
     .references(() => equityGrants.id, { onDelete: "cascade" }),
   exerciseId: uuid("exercise_id")
     .references(() => equityExercises.id, { onDelete: "set null" }),
+  vestEventId: uuid("vest_event_id")
+    .references(() => equityVestEvents.id, { onDelete: "set null" }),
   saleDate: date("sale_date").notNull(),
   shares: numeric("shares", { precision: 12, scale: 4 }).notNull(),
   salePrice: numeric("sale_price", { precision: 12, scale: 4 }).notNull(),
@@ -169,6 +171,7 @@ export const equityVestEvents = pgTable("equity_vest_events", {
     .references(() => equityGrants.id, { onDelete: "cascade" }),
   vestDate: date("vest_date").notNull(),
   shares: numeric("shares", { precision: 12, scale: 4 }).notNull(),
+  fmvAtVest: numeric("fmv_at_vest", { precision: 12, scale: 4 }),
   status: vestStatusEnum("status").default("scheduled").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });

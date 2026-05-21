@@ -1,14 +1,16 @@
 import { Badge } from "@/components/ui/badge";
-import type { GrantSummary } from "@/lib/equity-tracker/types";
+import type { GrantSummary, GrantType } from "@/lib/equity-tracker/types";
 import { formatCurrency, formatShares } from "@/lib/equity-tracker/utils";
 
 interface GrantSummaryCardProps {
   summary: GrantSummary;
+  grantType: GrantType;
   daysToExpiration?: number | null;
 }
 
-export function GrantSummaryCard({ summary, daysToExpiration }: GrantSummaryCardProps) {
-  const isUnderwater = summary.currentSpread <= 0 && summary.totalShares > 0;
+export function GrantSummaryCard({ summary, grantType, daysToExpiration }: GrantSummaryCardProps) {
+  const isRsu = grantType === "rsu";
+  const isUnderwater = !isRsu && summary.currentSpread <= 0 && summary.totalShares > 0;
   const expiringWarning = daysToExpiration != null && daysToExpiration <= 90 && daysToExpiration > 0;
 
   return (
@@ -20,18 +22,18 @@ export function GrantSummaryCard({ summary, daysToExpiration }: GrantSummaryCard
       )}
 
       {isUnderwater && !summary.isExpired && (
-        <div className="rounded-lg border border-amber-300/50 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
           These options are currently underwater (strike price exceeds current share price).
         </div>
       )}
 
       {expiringWarning && !summary.isExpired && (
-        <div className="rounded-lg border border-amber-300/50 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
           Expiring in {daysToExpiration} days — review your exercise options.
         </div>
       )}
 
-      <div className={`grid grid-cols-2 gap-4 ${summary.forfeitedShares > 0 ? "sm:grid-cols-5" : "sm:grid-cols-4"}`}>
+      <div className={`grid grid-cols-2 gap-4 ${isRsu ? (summary.forfeitedShares > 0 ? "sm:grid-cols-4" : "sm:grid-cols-3") : (summary.forfeitedShares > 0 ? "sm:grid-cols-5" : "sm:grid-cols-4")}`}>
         <SplitCard label="Total Units" value={formatShares(summary.totalShares)} />
         <SplitCard
           label="Vested"
@@ -39,12 +41,14 @@ export function GrantSummaryCard({ summary, daysToExpiration }: GrantSummaryCard
           secondary={summary.isFullyVested ? undefined : `${formatShares(summary.unvestedShares)} unvested`}
           badge={summary.isFullyVested ? "Fully vested" : undefined}
         />
-        <SplitCard
-          label="Exercised"
-          primary={formatShares(summary.exercisedShares)}
-          secondary={summary.exercisableShares > 0 ? `${formatShares(summary.exercisableShares)} exercisable` : undefined}
-          badge={summary.exercisedShares > 0 && summary.exercisableShares === 0 ? "Fully exercised" : undefined}
-        />
+        {!isRsu && (
+          <SplitCard
+            label="Exercised"
+            primary={formatShares(summary.exercisedShares)}
+            secondary={summary.exercisableShares > 0 ? `${formatShares(summary.exercisableShares)} exercisable` : undefined}
+            badge={summary.exercisedShares > 0 && summary.exercisableShares === 0 ? "Fully exercised" : undefined}
+          />
+        )}
         <SplitCard
           label="Sold"
           primary={formatShares(summary.soldShares)}
@@ -60,10 +64,12 @@ export function GrantSummaryCard({ summary, daysToExpiration }: GrantSummaryCard
         )}
       </div>
 
-      <div className="rounded-lg border border-border bg-secondary/30 px-4 py-3">
-        <p className="text-xs text-muted-foreground">Potential value of remaining options</p>
-        <p className="text-lg font-semibold">{formatCurrency(summary.totalValue)}</p>
-      </div>
+      {!isRsu && (
+        <div className="rounded-lg border border-border bg-secondary/30 px-4 py-3">
+          <p className="text-xs text-muted-foreground">Potential value of remaining options</p>
+          <p className="text-lg font-semibold">{formatCurrency(summary.totalValue)}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -85,10 +91,10 @@ function SplitCard({
   muted?: boolean;
   variant?: "amber";
 }) {
-  const borderClass = variant === "amber" ? "border-amber-200" : "border-border";
-  const bgClass = variant === "amber" ? "bg-amber-50/50" : "bg-white";
-  const valueClass = variant === "amber" ? "text-amber-600/70" : muted ? "text-muted-foreground" : "";
-  const labelClass = variant === "amber" ? "text-amber-500/70" : "text-muted-foreground";
+  const borderClass = variant === "amber" ? "border-amber-500/30" : "border-border";
+  const bgClass = variant === "amber" ? "bg-amber-500/10" : "bg-card";
+  const valueClass = variant === "amber" ? "text-amber-600 dark:text-amber-400" : muted ? "text-muted-foreground" : "";
+  const labelClass = variant === "amber" ? "text-amber-600/80 dark:text-amber-400/80" : "text-muted-foreground";
 
   return (
     <div className={`rounded-lg border ${borderClass} ${bgClass} p-3`}>

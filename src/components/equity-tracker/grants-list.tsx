@@ -26,6 +26,7 @@ const STATUS_STYLES: Record<string, { label: string; variant: "default" | "secon
 const GRANT_TYPE_LABEL: Record<string, string> = {
   iso: "ISO",
   nso: "NSO",
+  rsu: "RSU",
 };
 
 export function GrantsList({ company, selectedGrantId, onAddGrant, onEditCompany }: GrantsListProps) {
@@ -120,7 +121,7 @@ export function GrantsList({ company, selectedGrantId, onAddGrant, onEditCompany
                   "group flex w-full items-center justify-between rounded-xl border p-4 text-left transition-all hover:shadow-md",
                   selectedGrantId === grant.id
                     ? "border-primary/30 bg-primary/5"
-                    : "border-border bg-white",
+                    : "border-border bg-card",
                 )}
               >
                 <div className="min-w-0 flex-1">
@@ -131,8 +132,10 @@ export function GrantsList({ company, selectedGrantId, onAddGrant, onEditCompany
                     <Badge
                       className={`text-[10px] ${
                         grant.grantType === "iso"
-                          ? "border-blue-300 bg-blue-50 text-blue-700"
-                          : "border-amber-300 bg-amber-50 text-amber-700"
+                          ? "border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300"
+                          : grant.grantType === "rsu"
+                            ? "border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-300"
+                            : "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300"
                       }`}
                     >
                       {GRANT_TYPE_LABEL[grant.grantType]}

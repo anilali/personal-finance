@@ -52,6 +52,7 @@ function toVestEvent(row: typeof equityVestEvents.$inferSelect): VestEvent {
   return {
     ...row,
     shares: Number(row.shares),
+    fmvAtVest: row.fmvAtVest ? Number(row.fmvAtVest) : null,
     status: row.status as VestStatus,
   };
 }
@@ -259,12 +260,13 @@ export const deleteGrant = createServerFn({ method: "POST" })
 
 export const updateVestEvent = createServerFn({ method: "POST" })
   .inputValidator(
-    (input: { id: string; vestDate?: string; shares?: number; status?: string }) => input,
+    (input: { id: string; vestDate?: string; shares?: number; fmvAtVest?: number; status?: string }) => input,
   )
   .handler(async ({ data }): Promise<VestEvent> => {
     const updateData: Record<string, any> = {};
     if (data.vestDate !== undefined) updateData.vestDate = data.vestDate;
     if (data.shares !== undefined) updateData.shares = String(data.shares);
+    if (data.fmvAtVest !== undefined) updateData.fmvAtVest = data.fmvAtVest ? String(data.fmvAtVest) : null;
     if (data.status !== undefined) updateData.status = data.status;
 
     const [row] = await db
@@ -377,6 +379,7 @@ export const createSale = createServerFn({ method: "POST" })
       .values({
         grantId: data.grantId,
         exerciseId: data.exerciseId || null,
+        vestEventId: data.vestEventId || null,
         referenceId: data.referenceId || null,
         saleDate: data.saleDate,
         shares: String(data.shares),
@@ -391,12 +394,13 @@ export const createSale = createServerFn({ method: "POST" })
 
 export const updateSale = createServerFn({ method: "POST" })
   .inputValidator(
-    (input: { id: string; exerciseId?: string; referenceId?: string; saleDate?: string; shares?: number; salePrice?: number; costBasisPerShare?: number; isLongTerm?: boolean; notes?: string }) => input,
+    (input: { id: string; exerciseId?: string; vestEventId?: string; referenceId?: string; saleDate?: string; shares?: number; salePrice?: number; costBasisPerShare?: number; isLongTerm?: boolean; notes?: string }) => input,
   )
   .handler(async ({ data }): Promise<Sale> => {
     const { id, ...fields } = data;
     const updateData: Record<string, any> = {};
     if (fields.exerciseId !== undefined) updateData.exerciseId = fields.exerciseId || null;
+    if (fields.vestEventId !== undefined) updateData.vestEventId = fields.vestEventId || null;
     if (fields.referenceId !== undefined) updateData.referenceId = fields.referenceId || null;
     if (fields.saleDate !== undefined) updateData.saleDate = fields.saleDate;
     if (fields.shares !== undefined) updateData.shares = String(fields.shares);

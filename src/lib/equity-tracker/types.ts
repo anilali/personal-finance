@@ -1,6 +1,6 @@
 // ── Enums ───────────────────────────────────────────────────────
 
-export type GrantType = "iso" | "nso";
+export type GrantType = "iso" | "nso" | "rsu";
 export type GrantStatus = "active" | "fully_vested" | "expired" | "cancelled";
 export type VestStatus = "scheduled" | "vested" | "forfeited";
 
@@ -54,6 +54,7 @@ export interface VestEvent {
   grantId: string;
   vestDate: string;
   shares: number;
+  fmvAtVest: number | null;
   status: VestStatus;
 }
 
@@ -77,6 +78,7 @@ export interface Sale {
   referenceId: string | null;
   grantId: string;
   exerciseId: string | null;
+  vestEventId: string | null;
   saleDate: string;
   shares: number;
   salePrice: number;
@@ -89,11 +91,12 @@ export interface Sale {
 // ── Computed lot info ────────────────────────────────────────────
 
 export interface Lot {
-  exerciseId: string;
+  id: string;
+  source: "exercise" | "vest";
+  exerciseId?: string;
+  vestEventId?: string;
   referenceId: string | null;
-  exerciseDate: string;
-  exercisePrice: number;
-  fmvAtExercise: number;
+  acquiredDate: string;
   costBasis: number;
   sharesAcquired: number;
   sharesSold: number;
@@ -170,6 +173,7 @@ export interface UpdateGrantInput extends Partial<Omit<CreateGrantInput, "compan
 export interface CreateSaleInput {
   grantId: string;
   exerciseId?: string;
+  vestEventId?: string;
   referenceId?: string;
   saleDate: string;
   shares: number;

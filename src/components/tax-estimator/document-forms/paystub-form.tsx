@@ -147,7 +147,7 @@ export function PaystubForm({ defaultValues, onSubmit, onDelete }: PaystubFormPr
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       {/* Pay date detection */}
       {!hasSavedPeriods && (
-        <div className="rounded-lg border border-border bg-slate-50 p-4 space-y-3">
+        <div className="rounded-lg border border-border bg-muted p-4 space-y-3">
           <div className="flex items-center gap-2">
             <CalendarDays className="size-4 text-muted-foreground" />
             <p className="text-sm font-medium">Enter 2-3 recent pay dates to detect your pay schedule</p>
@@ -168,7 +168,7 @@ export function PaystubForm({ defaultValues, onSubmit, onDelete }: PaystubFormPr
           </div>
 
           {detected && (
-            <div className="flex items-center gap-2 rounded-md bg-white border border-border px-3 py-2">
+            <div className="flex items-center gap-2 rounded-md bg-background border border-border px-3 py-2">
               <Check className="size-4 text-emerald-600" />
               <span className="text-sm">
                 Detected: <span className="font-semibold">{detected.label}</span> ({detected.totalPayPeriods}/yr)

@@ -148,7 +148,7 @@ export function WizardShell({
       )}
 
       {/* Content */}
-      <div className="rounded-xl border border-border bg-white shadow-sm">
+      <div className="rounded-xl border border-border bg-card shadow-sm">
         <div className="p-6 sm:p-8">{children}</div>
       </div>
 

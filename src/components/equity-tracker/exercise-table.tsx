@@ -74,8 +74,8 @@ export function ExerciseTable({
                           variant="outline"
                           className={`text-[10px] ${
                             ex.filed83b
-                              ? "border-green-300 bg-green-50 text-green-700"
-                              : "border-amber-300 bg-amber-50 text-amber-700"
+                              ? "border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-300"
+                              : "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300"
                           }`}
                         >
                           {ex.filed83b ? "83(b)" : "No 83(b)"}

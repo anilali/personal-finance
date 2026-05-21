@@ -107,6 +107,7 @@ export function computeGrantSummary(grant: GrantWithVesting): GrantSummary {
     .filter((v) => v.status === "forfeited")
     .reduce((sum, v) => sum + v.shares, 0);
 
+  const isRsu = grant.grantType === "rsu";
   const exercisedShares = grant.exercises.reduce((sum, e) => sum + e.shares, 0);
 
   const totalCostBasis = grant.exercises.reduce(
@@ -118,13 +119,16 @@ export function computeGrantSummary(grant: GrantWithVesting): GrantSummary {
   );
 
   const currentPrice = grant.company.currentPrice ?? 0;
-  const spread = Math.max(0, currentPrice - grant.strikePrice);
+  const spread = Math.max(0, currentPrice - (grant.strikePrice ?? 0));
   const isExpired = grant.expirationDate
     ? new Date(grant.expirationDate) < new Date()
     : false;
 
   const soldShares = grant.sales.reduce((sum, s) => sum + s.shares, 0);
-  const heldShares = Math.max(0, exercisedShares - soldShares);
+  // RSU: held = vested - sold (no exercise step). Options: held = exercised - sold.
+  const heldShares = isRsu
+    ? Math.max(0, vestedShares - soldShares)
+    : Math.max(0, exercisedShares - soldShares);
 
   const totalProceeds = grant.sales.reduce(
     (sum, s) => sum + s.shares * s.salePrice, 0,
@@ -134,8 +138,10 @@ export function computeGrantSummary(grant: GrantWithVesting): GrantSummary {
   );
   const totalGainLoss = totalProceeds - totalSaleCostBasis;
 
-  const exercisableShares = isExpired ? 0 : Math.max(0, vestedShares - exercisedShares);
-  const remainingOptions = grant.totalShares - exercisedShares - forfeitedShares;
+  const exercisableShares = isRsu ? 0 : (isExpired ? 0 : Math.max(0, vestedShares - exercisedShares));
+  const remainingOptions = isRsu
+    ? grant.totalShares - vestedShares - forfeitedShares  // RSU: unvested units remaining
+    : grant.totalShares - exercisedShares - forfeitedShares;
 
   return {
     totalShares: grant.totalShares,
@@ -162,6 +168,32 @@ export function computeGrantSummary(grant: GrantWithVesting): GrantSummary {
 // ── Lot Computation ─────────────────────────────────────────────
 
 export function computeLots(grant: GrantWithVesting): Lot[] {
+  if (grant.grantType === "rsu") {
+    // RSU: each vested event is a lot, cost basis = FMV at vest
+    return grant.vestEvents
+      .filter((v) => v.status === "vested")
+      .map((v) => {
+        const sharesSold = grant.sales
+          .filter((s) => s.vestEventId === v.id)
+          .reduce((sum, s) => sum + s.shares, 0);
+
+        return {
+          id: v.id,
+          source: "vest" as const,
+          vestEventId: v.id,
+          referenceId: null,
+          acquiredDate: v.vestDate,
+          costBasis: v.fmvAtVest ?? 0,
+          sharesAcquired: v.shares,
+          sharesSold,
+          sharesRemaining: Math.max(0, v.shares - sharesSold),
+          grantType: grant.grantType,
+          grantDate: grant.grantDate,
+        };
+      });
+  }
+
+  // Options: each exercise is a lot
   return grant.exercises.map((ex) => {
     const sharesSold = grant.sales
       .filter((s) => s.exerciseId === ex.id)
@@ -174,11 +206,11 @@ export function computeLots(grant: GrantWithVesting): Lot[] {
       : ex.exercisePrice;
 
     return {
+      id: ex.id,
+      source: "exercise" as const,
       exerciseId: ex.id,
       referenceId: ex.referenceId,
-      exerciseDate: ex.exerciseDate,
-      exercisePrice: ex.exercisePrice,
-      fmvAtExercise: ex.fmvAtExercise,
+      acquiredDate: ex.exerciseDate,
       costBasis,
       sharesAcquired: ex.shares,
       sharesSold,
