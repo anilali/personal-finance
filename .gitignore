@@ -6,6 +6,9 @@ dist
 .env
 .env.local
 
+# Database backups (contain sensitive data)
+backups/
+
 # IDE
 .vscode
 .idea
