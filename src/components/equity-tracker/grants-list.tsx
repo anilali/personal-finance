@@ -53,6 +53,76 @@ export function GrantsList({ company, selectedGrantId, onAddGrant, onEditCompany
   };
 
   const activeGrants = company.grants.filter((g) => g.status !== "cancelled");
+  const optionGrants = activeGrants.filter((g) => g.grantType === "iso" || g.grantType === "nso");
+  const rsuGrants = activeGrants.filter((g) => g.grantType === "rsu");
+
+  const renderGrant = (grant: typeof activeGrants[number]) => {
+    const style = STATUS_STYLES[grant.status] ?? STATUS_STYLES.active;
+    const spread = company.currentPrice != null
+      ? Math.max(0, company.currentPrice - grant.strikePrice)
+      : null;
+
+    return (
+      <button
+        key={grant.id}
+        onClick={() => handleSelectGrant(grant.id)}
+        className={cn(
+          "group flex w-full items-center justify-between rounded-xl border p-4 text-left transition-all hover:shadow-md",
+          selectedGrantId === grant.id
+            ? "border-primary/30 bg-primary/5"
+            : "border-border bg-card",
+        )}
+      >
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            {grant.grantId && (
+              <span className="text-sm font-semibold text-foreground">{grant.grantId}</span>
+            )}
+            <Badge
+              className={`text-[10px] ${
+                grant.grantType === "iso"
+                  ? "border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300"
+                  : grant.grantType === "rsu"
+                    ? "border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-300"
+                    : "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+              }`}
+            >
+              {GRANT_TYPE_LABEL[grant.grantType]}
+            </Badge>
+            <Badge variant={style.variant} className="text-[10px]">
+              {style.label}
+            </Badge>
+            <span className="text-sm font-medium">
+              {formatShares(grant.totalShares)} shares
+            </span>
+          </div>
+          <div className="mt-1.5 flex items-center gap-4 text-xs text-muted-foreground">
+            <span>Grant: {formatDate(grant.grantDate)}</span>
+            <span>Strike: {formatCurrency(grant.strikePrice)}</span>
+            {spread != null && (
+              <span>Spread: {formatCurrency(spread)}</span>
+            )}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {spread != null && (
+            <div className="text-right">
+              <p className="text-sm font-semibold">
+                {formatCurrency(grant.totalShares * spread)}
+              </p>
+              <p className="text-xs text-muted-foreground">total value</p>
+            </div>
+          )}
+          <button
+            onClick={(e) => handleDeleteGrant(e, grant.id)}
+            className="rounded p-1 opacity-0 transition-opacity hover:bg-destructive/10 group-hover:opacity-100"
+          >
+            <Trash2 className="size-3.5 text-muted-foreground hover:text-destructive" />
+          </button>
+        </div>
+      </button>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -106,74 +176,33 @@ export function GrantsList({ company, selectedGrantId, onAddGrant, onEditCompany
           </Button>
         </div>
       ) : (
-        <div className="space-y-2">
-          {activeGrants.map((grant) => {
-            const style = STATUS_STYLES[grant.status] ?? STATUS_STYLES.active;
-            const spread = company.currentPrice != null
-              ? Math.max(0, company.currentPrice - grant.strikePrice)
-              : null;
-
-            return (
-              <button
-                key={grant.id}
-                onClick={() => handleSelectGrant(grant.id)}
-                className={cn(
-                  "group flex w-full items-center justify-between rounded-xl border p-4 text-left transition-all hover:shadow-md",
-                  selectedGrantId === grant.id
-                    ? "border-primary/30 bg-primary/5"
-                    : "border-border bg-card",
-                )}
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    {grant.grantId && (
-                      <span className="text-sm font-semibold text-foreground">{grant.grantId}</span>
-                    )}
-                    <Badge
-                      className={`text-[10px] ${
-                        grant.grantType === "iso"
-                          ? "border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300"
-                          : grant.grantType === "rsu"
-                            ? "border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-300"
-                            : "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                      }`}
-                    >
-                      {GRANT_TYPE_LABEL[grant.grantType]}
-                    </Badge>
-                    <Badge variant={style.variant} className="text-[10px]">
-                      {style.label}
-                    </Badge>
-                    <span className="text-sm font-medium">
-                      {formatShares(grant.totalShares)} shares
-                    </span>
-                  </div>
-                  <div className="mt-1.5 flex items-center gap-4 text-xs text-muted-foreground">
-                    <span>Grant: {formatDate(grant.grantDate)}</span>
-                    <span>Strike: {formatCurrency(grant.strikePrice)}</span>
-                    {spread != null && (
-                      <span>Spread: {formatCurrency(spread)}</span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {spread != null && (
-                    <div className="text-right">
-                      <p className="text-sm font-semibold">
-                        {formatCurrency(grant.totalShares * spread)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">total value</p>
-                    </div>
-                  )}
-                  <button
-                    onClick={(e) => handleDeleteGrant(e, grant.id)}
-                    className="rounded p-1 opacity-0 transition-opacity hover:bg-destructive/10 group-hover:opacity-100"
-                  >
-                    <Trash2 className="size-3.5 text-muted-foreground hover:text-destructive" />
-                  </button>
-                </div>
-              </button>
-            );
-          })}
+        <div className="space-y-6">
+          {optionGrants.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Options
+                </h3>
+                <span className="text-xs text-muted-foreground">
+                  ({optionGrants.length})
+                </span>
+              </div>
+              {optionGrants.map(renderGrant)}
+            </div>
+          )}
+          {rsuGrants.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  RSUs
+                </h3>
+                <span className="text-xs text-muted-foreground">
+                  ({rsuGrants.length})
+                </span>
+              </div>
+              {rsuGrants.map(renderGrant)}
+            </div>
+          )}
         </div>
       )}
     </div>
